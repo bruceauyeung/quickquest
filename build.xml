@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project name="QuickQuest" basedir="." default="unzip-gbk">
+
+    <property name="src.dir" value="src"/>
+    <property name="classes.dir" value="classes"/>
+
+    <target name="clean" description="Delete all generated files">
+        <delete dir="${classes.dir}" failonerror="false"/>
+        <delete file="${ant.project.name}.jar"/>
+    </target>
+    <target name="unzip-gbk" description="unzip those files whose file name are encoded with gbk">
+        <unzip src="/home/bruce/aa.zip" dest="/home/bruce" encoding="gbk" />
+    </target>
+</project>
