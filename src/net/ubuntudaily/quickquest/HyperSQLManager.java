@@ -24,6 +24,7 @@ import net.ubuntudaily.quickquest.utils.FSObjectUtils;
 
 import org.apache.commons.dbutils.DbUtils;
 import org.apache.commons.dbutils.QueryRunner;
+import org.apache.commons.dbutils.handlers.ArrayHandler;
 import org.apache.commons.dbutils.handlers.ArrayListHandler;
 import org.apache.commons.dbutils.handlers.BeanListHandler;
 import org.apache.commons.lang3.Range;
@@ -227,6 +228,7 @@ public class HyperSQLManager {
 						+ "(ID BIGINT IDENTITY, NAME VARCHAR(255), DEPTH INTEGER, SIZE BIGINT, TYPE TINYINT, LMTS TIMESTAMP,  POID BIGINT, UNIQUE (NAME,POID));");
 
 			}
+			stmt.execute("SET DATABASE SQL SYNTAX ORA TRUE;");
 			conn.commit();
 			allCreatedTables.clear();
 			allCreatedTables.addAll(listAllTableNames());
@@ -270,6 +272,28 @@ public class HyperSQLManager {
 		try {
 			conn = getConnection();
 			affected = qr.update(conn, sb.toString(), fso.getId());
+			conn.commit();
+		} catch (SQLException e) {
+			DbHelper.rollbackQuietly(conn);
+			LOGGER.error(e.getMessage());
+		}finally{
+			DbUtils.closeQuietly(conn);
+		}
+		if(affected > 0){
+			return true;
+		}
+		return false;
+	}
+	public static boolean update(FSObject fso){
+		
+		int depth = fso.getDepth();
+		StringBuilder sb = new StringBuilder("update ").append(getTableName(depth)).append(" set size=?, lmts=? where id=?");
+		QueryRunner qr = new QueryRunner();
+		int affected = 0;
+		Connection conn = null;
+		try {
+			conn = getConnection();
+			affected = qr.update(conn, sb.toString(), fso.getSize(), fso.getLmts(), fso.getId());
 			conn.commit();
 		} catch (SQLException e) {
 			DbHelper.rollbackQuietly(conn);
@@ -508,20 +532,9 @@ public class HyperSQLManager {
 		for (Entry<String, String> entry : conditions.entrySet()) {
 			final String value = entry.getValue();
 			if (StringUtils.isNotBlank(value)) {
-				StringBuilder sb = new StringBuilder(value);
-				while(sb.charAt(0) == '*'){
-					sb.deleteCharAt(0);
-				}
-				while(sb.charAt(sb.length() - 1) == '*'){
-					sb.deleteCharAt(sb.length() - 1);
-				}
-				for(int i = 0;i <sb.length();i++){
-					if(sb.charAt(i) == '*'){
-						sb.setCharAt(i, '%');
-					}
-				}
-				whereClause += " where " + entry.getKey() + " like '%"
-						+ sb.toString() + "%'";
+				String sb = replaceAsteriskWithPercent(value);
+				whereClause += " where " + entry.getKey() + " like '"
+						+ sb + "'";
 			}
 		}
 		StringBuilder selectStmt = new StringBuilder();
@@ -565,6 +578,37 @@ public class HyperSQLManager {
 		}
 		return total;
 	}
+	public static boolean match(String name, String criterion){
+		
+		if(StringUtils.isEmpty(criterion)){
+			return true;
+		}
+		
+		boolean match = false;
+		String sql = "select count(1) from dual where ? like ?";
+
+
+		QueryRunner qr = new QueryRunner();
+		ArrayHandler blh = new ArrayHandler();
+		Connection conn = null;
+		try {
+			conn = getConnection();
+			Object[] fsObjInfos = qr.query(conn,
+					sql, blh, name, replaceAsteriskWithPercent(criterion));
+			if (fsObjInfos.length > 0) {
+				match = true;
+			}
+			if (fsObjInfos.length > 1) {
+				LOGGER.warn("it is not expected that one file has two records in database.");
+			}
+		} catch (SQLException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}finally{
+			DbUtils.closeQuietly(conn);
+		}
+		return match;
+	}
 	public static List<FSObject> selectLike(Map<String, String> conditions) {
 		List<String> allTableNames = listAllTableNames();
 		List<FSObject> fsObjs = new ArrayList<>(0);
@@ -578,20 +622,9 @@ public class HyperSQLManager {
 		for (Entry<String, String> entry : conditions.entrySet()) {
 			String value = entry.getValue();
 			if (StringUtils.isNotBlank(value)) {
-				StringBuilder sb = new StringBuilder(value);
-				while(sb.charAt(0) == '*'){
-					sb.deleteCharAt(0);
-				}
-				while(sb.charAt(sb.length() - 1) == '*'){
-					sb.deleteCharAt(sb.length() - 1);
-				}
-				for(int i = 0;i <sb.length();i++){
-					if(sb.charAt(i) == '*'){
-						sb.setCharAt(i, '%');
-					}
-				}
-				whereClause += " where " + entry.getKey() + " like '%"
-						+ sb.toString() + "%'";
+				String sb = replaceAsteriskWithPercent(value);
+				whereClause += " where " + entry.getKey() + " like '"
+						+ sb + "'";
 			}
 		}
 		StringBuilder selectStmt = new StringBuilder();
@@ -625,6 +658,21 @@ public class HyperSQLManager {
 
 		return fsObjs;
 	}
+
+	private static String replaceAsteriskWithPercent(String value) {
+		String[] parts = StringUtils.split(value, "*");
+		
+		StringBuilder sb = new StringBuilder();
+
+		sb.append("%");
+		for(int i = 0;i <parts.length;i++){
+			if(!StringUtils.isEmpty(parts[i])){
+				sb.append(parts[i]).append("%");
+			}
+		}
+		sb.append("%");
+		return sb.toString();
+	}
 	public static List<FSObject> selectLike(Map<String, String> conditions, Range<Integer> rownum) {
 		List<String> allTableNames = listAllTableNames();
 		List<FSObject> fsObjs = new ArrayList<>(0);
@@ -638,20 +686,9 @@ public class HyperSQLManager {
 		for (Entry<String, String> entry : conditions.entrySet()) {
 			final String value = entry.getValue();
 			if (StringUtils.isNotBlank(value)) {
-				StringBuilder sb = new StringBuilder(value);
-				while(sb.charAt(0) == '*'){
-					sb.deleteCharAt(0);
-				}
-				while(sb.charAt(sb.length() - 1) == '*'){
-					sb.deleteCharAt(sb.length() - 1);
-				}
-				for(int i = 0;i <sb.length();i++){
-					if(sb.charAt(i) == '*'){
-						sb.setCharAt(i, '%');
-					}
-				}
-				whereClause += " where " + entry.getKey() + " like '%"
-						+ sb.toString() + "%'";
+				String sb = replaceAsteriskWithPercent(value);
+				whereClause += " where " + entry.getKey() + " like '"
+						+ sb + "'";
 			}
 		}
 

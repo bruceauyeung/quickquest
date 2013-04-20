@@ -6,12 +6,14 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
+import java.nio.charset.Charset;
 import java.util.Collection;
 import java.util.Enumeration;
 import java.util.List;
 
 import net.ubuntudaily.quickquest.commons.collections.Lists;
 import net.ubuntudaily.quickquest.commons.io.FileUtils;
+import net.ubuntudaily.quickquest.commons.lang.Strings;
 
 import org.apache.commons.compress.archivers.zip.ZipArchiveEntry;
 import org.apache.commons.compress.archivers.zip.ZipArchiveOutputStream;
@@ -19,6 +21,7 @@ import org.apache.commons.compress.archivers.zip.ZipFile;
 import org.apache.commons.io.IOUtils;
 import org.apache.commons.io.filefilter.CanReadFileFilter;
 import org.apache.commons.io.filefilter.DirectoryFileFilter;
+import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -31,6 +34,7 @@ import org.slf4j.LoggerFactory;
 public class ZipUtils
 {
 
+	private static final String[] CANDIDATE_ENCODINGS = {"UTF-8", "GBK"};
     private static final Logger LOG = LoggerFactory.getLogger(ZipUtils.class);
 
     /**
@@ -360,5 +364,47 @@ public class ZipUtils
         }
 
         return true;
+    }
+    public static Charset detectZipInternalFileNameCharset(File zipFile){
+    	
+    	for(String encoding : CANDIDATE_ENCODINGS){
+            ZipFile src = null;
+            boolean hasGarbledChars = false;
+			try {
+				src = new ZipFile(zipFile, encoding);
+	            Enumeration<ZipArchiveEntry> entries = src.getEntries();
+	            while (entries.hasMoreElements())
+	            {
+	                ZipArchiveEntry zipEntry = entries.nextElement();
+	                String entryName = zipEntry.getName();
+	                String[] names = StringUtils.split(entryName, '/');
+	                for(String name : names){
+		                if(Strings.containsGarbledCharacter(name)){
+		                	hasGarbledChars = true;
+		                	break;
+		                }
+		                
+		                if(hasGarbledChars){
+		                	break;
+		                }
+	                }
+
+	            }
+	            if(!hasGarbledChars){
+	            	return Charset.forName(encoding);
+	            }
+			} catch (IOException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			}
+			finally{
+				ZipFile.closeQuietly(src);
+			}
+
+            
+    	}
+
+            
+        return null;
     }
 }

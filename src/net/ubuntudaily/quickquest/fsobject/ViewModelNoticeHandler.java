@@ -2,10 +2,11 @@ package net.ubuntudaily.quickquest.fsobject;
 
 import java.util.concurrent.BlockingQueue;
 
+import net.ubuntudaily.quickquest.HyperSQLManager;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.trolltech.qt.core.QRect;
 import com.trolltech.qt.gui.QApplication;
 import com.trolltech.qt.gui.QTableView;
 
@@ -36,17 +37,20 @@ public class ViewModelNoticeHandler implements Runnable {
 				Thread.currentThread().interrupt();
 			}
 			if(notice != null){
-				if(FileOperationType.DELETE.equals(notice.getType())){
-					
+				if(HyperSQLManager.match(notice.getFSObject().getName(), model.getCriterion())){
+					if(FileOperationType.DELETE.equals(notice.getType())){
+						
+	
+					}
 					QApplication.invokeLater(new Runnable(){
 
 						@Override
 						public void run() {
 							
-							QRect boundingRect = view.visibleRegion().boundingRect();
-							int firstVisibleRow = view.rowAt(boundingRect.top());
-							int lastVisibleRow = view.rowAt(boundingRect.bottom());
-							LOG.debug("firstVisibleRow:{}, lastVisibleRow:{}", firstVisibleRow, lastVisibleRow);
+							//QRect boundingRect = view.visibleRegion().boundingRect();
+							//int firstVisibleRow = view.rowAt(boundingRect.top());
+							//int lastVisibleRow = view.rowAt(boundingRect.bottom());
+							//LOG.debug("firstVisibleRow:{}, lastVisibleRow:{}", firstVisibleRow, lastVisibleRow);
 							
 							
 							//TODO: 当监控到文件变化时,只有当变化的文件在当前的可视区域中时,才需要从cache中删除条目,并通知更新
@@ -57,6 +61,7 @@ public class ViewModelNoticeHandler implements Runnable {
 						
 					});
 				}
+
 
 			}
 		}

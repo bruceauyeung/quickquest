@@ -299,4 +299,8 @@ public class FSObjectTableModel extends QAbstractTableModel {
 	public FSObjectVO getRow(int rowNum) {
 		return cache.get(rowNum);
 	}
+
+	public String getCriterion() {
+		return criterion;
+	}
 }

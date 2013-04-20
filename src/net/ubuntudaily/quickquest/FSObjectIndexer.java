@@ -2,6 +2,7 @@ package net.ubuntudaily.quickquest;
 
 import java.io.File;
 import java.sql.SQLException;
+import java.sql.Timestamp;
 import java.util.List;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.Callable;
@@ -22,7 +23,9 @@ public class FSObjectIndexer implements Callable<Void> {
 			.getLogger(FSObjectIndexer.class);
 	private final BlockingQueue<FileOperation> readInQueue;
 	private final BlockingQueue<ViewModelNotice> noticeQueue;
-	public FSObjectIndexer(BlockingQueue<FileOperation> readInQueue,BlockingQueue<ViewModelNotice> noticeQueue) {
+
+	public FSObjectIndexer(BlockingQueue<FileOperation> readInQueue,
+			BlockingQueue<ViewModelNotice> noticeQueue) {
 		this.readInQueue = readInQueue;
 		this.noticeQueue = noticeQueue;
 	}
@@ -48,9 +51,6 @@ public class FSObjectIndexer implements Callable<Void> {
 			File after = fo.getAfterOperated();
 			updateFile(before, after);
 		}
-		
-		
-		
 
 	}
 
@@ -66,7 +66,25 @@ public class FSObjectIndexer implements Callable<Void> {
 	}
 
 	private void updateFile(File before, File after) {
-		// TODO Auto-generated method stub
+		HyperSQLManager
+				.ensureTableExistence(FileUtils.calculateFileDepth(after));
+		FSObject fsObjInfo = HyperSQLManager.findEquivalent(after);
+		if (fsObjInfo != null) {
+			
+			//only size and last modified timestamp are needed to be update
+			fsObjInfo.setSize(after.length());
+			fsObjInfo.setLmts(new Timestamp(after.lastModified()));
+			HyperSQLManager.update(fsObjInfo);
+			LOGGER.debug("FSObject in database has been updated: {}",
+					fsObjInfo.toString());
+
+			notifyViewModel(FileOperationType.MODIFY, fsObjInfo);
+
+		} else {
+			LOGGER.warn(
+					"file existing in database is expected, but not found, maybe indexes is not consistent with file system.\r\nfile path:{} ",
+					after.getAbsolutePath());
+		}
 
 	}
 
@@ -81,10 +99,11 @@ public class FSObjectIndexer implements Callable<Void> {
 		FSObject fsObjInfo = HyperSQLManager.findEquivalent(file);
 		if (fsObjInfo != null) {
 			HyperSQLManager.delete(fsObjInfo);
-			LOGGER.debug("FSObject removed from database : {}", fsObjInfo.toString());
-			
+			LOGGER.debug("FSObject removed from database : {}",
+					fsObjInfo.toString());
+
 			notifyViewModel(FileOperationType.DELETE, fsObjInfo);
-			
+
 		} else {
 			LOGGER.warn(
 					"file existing in database is expected, but not found, maybe indexes is not consistent with file system.\r\nfile path:{} ",
@@ -128,6 +147,11 @@ public class FSObjectIndexer implements Callable<Void> {
 						// TODO Auto-generated catch block
 						e.printStackTrace();
 						Thread.currentThread().interrupt();
+					}
+
+					if (selfObj != null) {
+
+						notifyViewModel(FileOperationType.CREATE, selfObj);
 					}
 				}
 			}
