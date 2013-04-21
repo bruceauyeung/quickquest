@@ -1,5 +1,6 @@
 package net.ubuntudaily.quickquest.fsobject;
 
+import java.io.File;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -15,11 +16,13 @@ import org.slf4j.LoggerFactory;
 
 import com.trolltech.qt.QtBlockedSlot;
 import com.trolltech.qt.core.QAbstractItemModel;
+import com.trolltech.qt.core.QFileInfo;
 import com.trolltech.qt.core.QModelIndex;
 import com.trolltech.qt.core.Qt;
 import com.trolltech.qt.core.Qt.Orientation;
 import com.trolltech.qt.gui.QAbstractTableModel;
 import com.trolltech.qt.gui.QApplication;
+import com.trolltech.qt.gui.QFileIconProvider;
 
 public class FSObjectTableModel extends QAbstractTableModel {
 
@@ -30,6 +33,7 @@ public class FSObjectTableModel extends QAbstractTableModel {
 	private AtomicInteger totalRowNum = new AtomicInteger(-1);
 
 	public Signal1<Integer> rowCountChanged = new Signal1<Integer>();
+	private final QFileIconProvider fip = new QFileIconProvider();
 
 	public FSObjectTableModel(String criterion) {
 		resetCriterion(criterion);
@@ -94,24 +98,32 @@ public class FSObjectTableModel extends QAbstractTableModel {
 		this.reset();
 	}
 
-	public void resetAndClearModel(){
+	public void resetAndClearModel() {
 		resetCriterion(this.criterion);
 		resetModel();
 	}
+
 	@Override
 	@QtBlockedSlot
 	public Object data(QModelIndex modelIndex, int role) {
 		// logger.debug("data method is called.");
-		if (role == Qt.ItemDataRole.DisplayRole) {
-			FSObjectVO vo = null;
-			int row = modelIndex.row();
+		FSObjectVO vo = null;
+		int row = modelIndex.row();
 
-			if (cache == null || !cache.getRowNumRange().contains(row)) {
-				retrieveData(row);
+		if (cache == null || !cache.getRowNumRange().contains(row)) {
+			retrieveData(row);
 
-			}
-			vo = cache.get(row);
-			if (vo != null) {
+		}
+		vo = cache.get(row);
+		if (vo != null) {
+
+			if (role == Qt.ItemDataRole.DecorationRole) {
+				if (modelIndex.column() == 0) {
+					QFileInfo fileInfo = new QFileInfo(new File(vo.getPath(),
+							vo.getName()).getAbsolutePath());
+					return fip.icon(fileInfo);
+				}
+			} else if (role == Qt.ItemDataRole.DisplayRole) {
 				switch (modelIndex.column()) {
 				case 0:
 					return vo.getName();
@@ -121,17 +133,18 @@ public class FSObjectTableModel extends QAbstractTableModel {
 					return vo.getSize();
 				case 3:
 					return vo.getLtms().toString();
-					
+
 				case 4:
 					return vo.getPoid();
 				case 5:
 					return vo.getRowNum();
 				}
-			} else {
-				return null;
 			}
 
+		} else {
+			return null;
 		}
+
 		// TODO Auto-generated method stub
 		// return new FSObjectVO("bruce", "test", 123, new
 		// Timestamp(System.currentTimeMillis()));
@@ -149,7 +162,8 @@ public class FSObjectTableModel extends QAbstractTableModel {
 		int startRow = -1;
 		int endRow = -1;
 		if (cache != null) {
-			LOGGER.debug("row:{}, min:{}, max:{}", row, cache.getRowNumRange().getMinimum(), cache.getRowNumRange().getMaximum());
+			LOGGER.debug("row:{}, min:{}, max:{}", row, cache.getRowNumRange()
+					.getMinimum(), cache.getRowNumRange().getMaximum());
 			if (row < cache.getRowNumRange().getMinimum()) {
 				startRow = row - FSObjectCache.MAX_CACHE_SIZE + 1;
 				if (startRow < 0) {
@@ -279,10 +293,11 @@ public class FSObjectTableModel extends QAbstractTableModel {
 		return super.insertRows(row, count, parent);
 	}
 
-	public boolean removeFSObjectVO(FSObject fso){
-		//TODO 
+	public boolean removeFSObjectVO(FSObject fso) {
+		// TODO
 		return true;
 	}
+
 	/**
 	 * TODO
 	 */
