@@ -1,6 +1,7 @@
 package net.ubuntudaily.quickquest;
 
 import java.io.File;
+import java.nio.charset.Charset;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -11,10 +12,12 @@ import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 
+import net.ubuntudaily.quickquest.commons.archive.ZipUtils;
 import net.ubuntudaily.quickquest.commons.collections.Lists;
 import net.ubuntudaily.quickquest.commons.io.DirectoryWatcher;
 import net.ubuntudaily.quickquest.commons.io.FileFinder;
 import net.ubuntudaily.quickquest.commons.io.FileUtils;
+import net.ubuntudaily.quickquest.commons.io.FilenameUtils;
 import net.ubuntudaily.quickquest.fsobject.FSObjectTableModel;
 import net.ubuntudaily.quickquest.fsobject.FSObjectVO;
 import net.ubuntudaily.quickquest.fsobject.FileOperation;
@@ -89,7 +92,8 @@ public class Main extends QMainWindow {
 	private DirectoryWatcher dirWatcher;
 	private Future<?> noticeHandlerTask;
 	private QAction openAct;
-	private static final String QUEST_PATH = "/mnt/F/Movies/贝瓦儿歌";
+	private QAction extractAct;
+	private static final String QUEST_PATH = "/mnt/D/Movies";
 	static {
 		HyperSQLManager.startupDB();
 		// HyperSQLManager.dropAllTables();
@@ -105,8 +109,13 @@ public class Main extends QMainWindow {
 
 		openAct = new QAction(tr("&Open"), this);
 		openAct.setShortcut(tr("Ctrl+O"));
-		openAct.setStatusTip(tr("open the selected file or directory with default application"));
+		openAct.setStatusTip(tr("open the selected file or directory with default application."));
 		openAct.triggered.connect(this, "slotOpenWithDefApp()");
+		
+		extractAct = new QAction(tr("&Extract"), this);
+		extractAct.setShortcut(tr("Ctrl+E"));
+		extractAct.setStatusTip(tr("extract the selected zip file to same directory."));
+		extractAct.triggered.connect(this, "slotExtractToSameDir()");
 
 		exitAct = new QAction(tr("E&xit"), this);
 		exitAct.setShortcut(tr("Ctrl+Q"));
@@ -187,6 +196,8 @@ public class Main extends QMainWindow {
 
 		ctxMenu = new QMenu(this);
 		ctxMenu.addAction(openAct);
+		ctxMenu.addAction(extractAct);
+		
 
 		// http://stackoverflow.com/questions/4031168/qtableview-is-extremely-slow-even-for-only-3000-rows
 		// resize is a performance killer
@@ -293,7 +304,25 @@ public class Main extends QMainWindow {
 
 		}
 	}
+	public void slotExtractToSameDir() {
+		QItemSelectionModel selModel = tableView.selectionModel();
+		List<QModelIndex> idxes = selModel.selection().indexes();
+		if (idxes.size() > 0) {
 
+			//QWidget widget = tableView.indexWidget(tableModel.index(idxes.get(0).row(), 5));
+			//QWidget widget = tableView.indexWidget(idxes.get(0));
+			
+			//LOGGER.debug("rowNum:{},poid:{}",.)
+			FSObjectVO fsovo = tableModel.getRow(idxes.get(0).row());
+			File file = new File(fsovo.getPath(), fsovo.getName());
+
+			Charset charset = ZipUtils.detectZipInternalFileNameCharset(file);
+			File destDir = new File(fsovo.getPath(),FilenameUtils.getBaseName(file.getName()));
+			ZipUtils.unzip(file, destDir, charset.name());
+
+		}
+	}
+	
 	public void slotCustomContextMenuRequested(QPoint p) {
 
 		ctxMenu.exec(QCursor.pos());

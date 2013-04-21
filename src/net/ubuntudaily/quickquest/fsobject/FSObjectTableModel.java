@@ -74,7 +74,7 @@ public class FSObjectTableModel extends QAbstractTableModel {
 					.append(", col:").append(arg0.column()).append(")")
 					.toString());
 		}
-		return 6;
+		return 4;
 	}
 
 	public void prepareData() {
