@@ -351,8 +351,8 @@ public class Main extends QMainWindow {
 	}
 	
 	public void slotEditPreferences() {
-		AboutDialog aboutDialog = new AboutDialog(this);
-		aboutDialog.exec();
+		PreferencesDialog prefsDialog = new PreferencesDialog(this);
+		prefsDialog.exec();
 	}
 	public void about() {
 		AboutDialog aboutDialog = new AboutDialog(this);
