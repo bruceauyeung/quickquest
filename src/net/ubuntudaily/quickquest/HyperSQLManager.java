@@ -287,13 +287,13 @@ public class HyperSQLManager {
 	public static boolean update(FSObject fso){
 		
 		int depth = fso.getDepth();
-		StringBuilder sb = new StringBuilder("update ").append(getTableName(depth)).append(" set size=?, lmts=? where id=?");
+		StringBuilder sb = new StringBuilder("update ").append(getTableName(depth)).append(" set name=?, size=?, lmts=? where id=?");
 		QueryRunner qr = new QueryRunner();
 		int affected = 0;
 		Connection conn = null;
 		try {
 			conn = getConnection();
-			affected = qr.update(conn, sb.toString(), fso.getSize(), fso.getLmts(), fso.getId());
+			affected = qr.update(conn, sb.toString(), fso.getName(), fso.getSize(), fso.getLmts(), fso.getId());
 			conn.commit();
 		} catch (SQLException e) {
 			DbHelper.rollbackQuietly(conn);

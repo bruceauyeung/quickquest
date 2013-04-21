@@ -47,9 +47,8 @@ public class FSObjectIndexer implements Callable<Void> {
 			File after = fo.getAfterOperated();
 			renameFile(before, after);
 		} else if (FileOperationType.MODIFY.equals(fo.getType())) {
-			File before = fo.getBeforeOperated();
 			File after = fo.getAfterOperated();
-			updateFile(before, after);
+			updateFile(after);
 		}
 
 	}
@@ -65,13 +64,13 @@ public class FSObjectIndexer implements Callable<Void> {
 		}
 	}
 
-	private void updateFile(File before, File after) {
-		HyperSQLManager
-				.ensureTableExistence(FileUtils.calculateFileDepth(after));
+	private void updateFile(File after) {
+		HyperSQLManager.ensureTableExistence(FileUtils
+				.calculateFileDepth(after));
 		FSObject fsObjInfo = HyperSQLManager.findEquivalent(after);
 		if (fsObjInfo != null) {
-			
-			//only size and last modified timestamp are needed to be update
+
+			// only size and last modified timestamp are needed to be updated
 			fsObjInfo.setSize(after.length());
 			fsObjInfo.setLmts(new Timestamp(after.lastModified()));
 			HyperSQLManager.update(fsObjInfo);
@@ -89,7 +88,25 @@ public class FSObjectIndexer implements Callable<Void> {
 	}
 
 	private void renameFile(File before, File after) {
-		// TODO Auto-generated method stub
+		HyperSQLManager.ensureTableExistence(FileUtils
+				.calculateFileDepth(before));
+		FSObject fsObjInfo = HyperSQLManager.findEquivalent(before);
+		if (fsObjInfo != null) {
+
+			// only name and last modified timestamp are needed to be updated
+			fsObjInfo.setLmts(new Timestamp(after.lastModified()));
+			fsObjInfo.setName(after.getName());
+			HyperSQLManager.update(fsObjInfo);
+			LOGGER.debug("File {} in database has been renamed to {}",
+					before.getName(), after.getName());
+
+			notifyViewModel(FileOperationType.RENAME, fsObjInfo);
+
+		} else {
+			LOGGER.warn(
+					"file existing in database is expected, but not found, maybe indexes is not consistent with file system.\r\nfile path:{} ",
+					after.getAbsolutePath());
+		}
 
 	}
 
