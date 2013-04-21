@@ -29,7 +29,7 @@ import org.apache.commons.dbutils.handlers.ArrayListHandler;
 import org.apache.commons.dbutils.handlers.BeanListHandler;
 import org.apache.commons.lang3.Range;
 import org.apache.commons.lang3.StringUtils;
-import org.jsoup.helper.Validate;
+import org.apache.commons.lang3.Validate;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
