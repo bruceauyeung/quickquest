@@ -93,7 +93,8 @@ public class Main extends QMainWindow {
 	private Future<?> noticeHandlerTask;
 	private QAction openAct;
 	private QAction extractAct;
-	private static final String QUEST_PATH = "/mnt/D/Movies";
+	private QAction prefsAct;
+	private static final String QUEST_PATH = "e:\\Movies";
 	static {
 		HyperSQLManager.startupDB();
 		// HyperSQLManager.dropAllTables();
@@ -122,6 +123,11 @@ public class Main extends QMainWindow {
 		exitAct.setStatusTip(tr("Exit the application"));
 		exitAct.triggered.connect(this, "close()");
 
+		prefsAct = new QAction(tr("&Preferences"), this);
+		prefsAct.setShortcut(tr("Ctrl+P"));
+		prefsAct.setStatusTip(tr("edit QuickQuest preferences."));
+		prefsAct.triggered.connect(this, "slotEditPreferences()");
+		
 		aboutAct = new QAction(tr("&About"), this);
 		aboutAct.setStatusTip(tr("Show the application's About box"));
 		aboutAct.triggered.connect(this, "about()");
@@ -139,6 +145,9 @@ public class Main extends QMainWindow {
 		QMenu fileMenu = this.menuBar().addMenu("&File");
 		fileMenu.addAction(exitAct);
 
+		QMenu editMenu = this.menuBar().addMenu("&Edit");
+		editMenu.addAction(prefsAct);
+		
 		QMenu helpMenu = menuBar().addMenu(tr("&Help"));
 		helpMenu.addAction(aboutAct);
 		helpMenu.addSeparator();
@@ -340,12 +349,15 @@ public class Main extends QMainWindow {
 		executor.submit(new FSObjectTableModelWorker(this, critira));
 
 	}
-
+	
+	public void slotEditPreferences() {
+		AboutDialog aboutDialog = new AboutDialog(this);
+		aboutDialog.exec();
+	}
 	public void about() {
 		AboutDialog aboutDialog = new AboutDialog(this);
 		aboutDialog.exec();
 	}
-
 	@Override
 	@QtBlockedSlot
 	protected void closeEvent(QCloseEvent qCloseEvent) {
