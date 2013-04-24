@@ -152,6 +152,8 @@ public class HyperSQLManager {
 			dataSource = new ComboPooledDataSource();
 			dataSource.setDriverClass("org.hsqldb.jdbcDriver");
 			dataSource.setInitialPoolSize(2);
+			
+			//TODO: test whether works under windows or not.
 			dataSource
 					.setJdbcUrl("jdbc:hsqldb:file:" + QuickQuest.getPreferences().getDirectoryTab().getDatabaseLocation().getAbsolutePath() + "/quickquest;shutdown=true;");
 			dataSource.setMinPoolSize(2);
