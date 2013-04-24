@@ -96,6 +96,7 @@ public class Main extends QMainWindow {
 	private QAction prefsAct;
 	private static final String QUEST_PATH = "e:\\Movies";
 	static {
+		QuickQuest.loadPreferences();
 		HyperSQLManager.startupDB();
 		// HyperSQLManager.dropAllTables();
 		HyperSQLManager.createTables(0, 1, 2);

@@ -8,7 +8,8 @@ import net.ubuntudaily.quickquest.QuickQuest;
 
 public class DirectoryTab {
 	
-	File databaseLocation = QuickQuest.USER_HOME;
+	File databaseLocation = QuickQuest.QUICK_QUEST_CFG_DIR;
+	File oldDatabaseLocation = null;
 	List<MonitoredDirectory> monitoredDirectories = new ArrayList<MonitoredDirectory>();
 	public File getDatabaseLocation() {
 		return databaseLocation;
@@ -26,5 +27,11 @@ public class DirectoryTab {
 	
 	public void addMonitoredDirectory(MonitoredDirectory dir){
 		monitoredDirectories.add(dir);
+	}
+	public File getOldDatabaseLocation() {
+		return oldDatabaseLocation;
+	}
+	public void setOldDatabaseLocation(File oldDatabaseLocation) {
+		this.oldDatabaseLocation = oldDatabaseLocation;
 	}
 }

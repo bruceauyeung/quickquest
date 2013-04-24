@@ -153,7 +153,7 @@ public class HyperSQLManager {
 			dataSource.setDriverClass("org.hsqldb.jdbcDriver");
 			dataSource.setInitialPoolSize(2);
 			dataSource
-					.setJdbcUrl("jdbc:hsqldb:file:~/.quickquest/quickquest;shutdown=true;");
+					.setJdbcUrl("jdbc:hsqldb:file:" + QuickQuest.getPreferences().getDirectoryTab().getDatabaseLocation().getAbsolutePath() + "/quickquest;shutdown=true;");
 			dataSource.setMinPoolSize(2);
 			dataSource.setMaxPoolSize(8);
 			dataSource.setUser("quickquest");

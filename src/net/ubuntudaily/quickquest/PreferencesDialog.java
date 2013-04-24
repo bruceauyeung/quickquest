@@ -30,7 +30,7 @@ import com.trolltech.qt.gui.QWidget;
 
 public class PreferencesDialog extends QDialog {
 
-	private Preferences prefs = new Preferences();
+	
 	private DirectoryTab directoryTab;
 	public PreferencesDialog(Main parent) {
 		super(parent);
@@ -78,10 +78,7 @@ public class PreferencesDialog extends QDialog {
 
 	private void loadPreferences() {
 		
-		final File jsonFile = new File(QuickQuest.QUICK_QUEST_DATA_DIR, "prefereces.json");
-		if(jsonFile.exists()){
-			prefs = JsonHelper.fromJson(jsonFile, Preferences.class);
-		}
+		Preferences prefs = QuickQuest.getPreferences();
 		directoryTab.getDbLocLineEdit().setText(prefs.getDirectoryTab().getDatabaseLocation().getAbsolutePath());
 		
 		for(MonitoredDirectory moniDir :prefs.getDirectoryTab().getMonitoredDirectories()){
@@ -91,8 +88,9 @@ public class PreferencesDialog extends QDialog {
 	}
 	
 	private void slotApplyBtnHandler(){
+		Preferences prefs = QuickQuest.getPreferences();
 		saveDirectoryTab();
-		final File jsonFile = new File(QuickQuest.QUICK_QUEST_DATA_DIR, "prefereces.json");
+		final File jsonFile = new File(QuickQuest.QUICK_QUEST_CFG_DIR, "prefereces.json");
 		JsonHelper.toJson(jsonFile, prefs);
 	}
 
@@ -105,6 +103,7 @@ public class PreferencesDialog extends QDialog {
 		public DirectoryTab(QWidget parent) {
 			super(parent);
 			QLabel dbLocLable = new QLabel(tr("Database Location:"), this);
+			Preferences prefs = QuickQuest.getPreferences();
 			dbLocLineEdit = new QLineEdit(prefs.getDirectoryTab().getDatabaseLocation().getAbsolutePath(), this);
 			QPushButton browserBtn = new QPushButton(tr("Browse"), this);
 			browserBtn.clicked.connect(this, "browse()");
@@ -234,9 +233,14 @@ public class PreferencesDialog extends QDialog {
 		this.accept();
 	}
 	private void saveDirectoryTab() {
-		
+		Preferences prefs = QuickQuest.getPreferences();
 		String databaseLocation = directoryTab.getDbLocLineEdit().text();
-		prefs.getDirectoryTab().setDatabaseLocation(new File(databaseLocation));
+		final File newDbLocFile = new File(databaseLocation);
+		final net.ubuntudaily.quickquest.preferences.DirectoryTab dirTab = prefs.getDirectoryTab();
+		if(dirTab.getOldDatabaseLocation() == null){
+			dirTab.setOldDatabaseLocation(dirTab.getDatabaseLocation());
+		}
+		dirTab.setDatabaseLocation(newDbLocFile);
 		
 		ArrayList<MonitoredDirectory> moniDirs = new ArrayList<MonitoredDirectory>();
 		
@@ -257,7 +261,7 @@ public class PreferencesDialog extends QDialog {
 			
 			moniDirs.add(new MonitoredDirectory(new File(moniDir), isInSearchPath, changesMonitored));
 		}
-		prefs.getDirectoryTab().setMonitoredDirectories(moniDirs);
+		dirTab.setMonitoredDirectories(moniDirs);
 		//directoryTab
 		
 	}
