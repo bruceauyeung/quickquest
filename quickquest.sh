@@ -1,7 +1,12 @@
 #!/bin/sh
-
-export LD_LIBRARY_PATH=./lib:/usr/lib/qtjambi/:$LD_LIBRARY_PATH
-JAVA_CLASSPATH="/usr/lib/jni/qtjambi.jar:quickquest.jar";
+long_bit=`getconf LONG_BIT`
+if [ "$long_bit" == "32" ];then
+  USR_LIB_PATH="/usr/lib/";
+else
+  USR_LIB_PATH="/usr/lib64/";
+fi
+export LD_LIBRARY_PATH=./lib:$USR_LIB_PATH/qtjambi/:$LD_LIBRARY_PATH
+JAVA_CLASSPATH="$USR_LIB_PATH/jni/qtjambi.jar:quickquest.jar";
 for f in `ls ./lib/*.jar`; do
   JAVA_CLASSPATH=$JAVA_CLASSPATH:$f;
 done
