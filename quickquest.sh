@@ -13,4 +13,4 @@ done
 
 export QUICKQUEST_PROG_DIR=`pwd`
 
-java -Dquickquest_prog_dir=$QUICKQUEST_PROG_DIR -cp $JAVA_CLASSPATH net.ubuntudaily.quickquest.Main
+java -Dquickquest_prog_dir="$QUICKQUEST_PROG_DIR" -cp $JAVA_CLASSPATH net.ubuntudaily.quickquest.Main
