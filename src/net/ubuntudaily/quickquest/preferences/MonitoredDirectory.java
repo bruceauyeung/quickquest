@@ -9,7 +9,7 @@ public class MonitoredDirectory {
 	File directory = QuickQuest.USER_HOME;
 	boolean inSearchPath = true;
 	boolean changesMonitored = true;
-	
+	boolean fullScanFinished = false;
 	public MonitoredDirectory() {
 	}
 	public MonitoredDirectory(File directory, boolean inSearchPath,
@@ -18,6 +18,7 @@ public class MonitoredDirectory {
 		this.inSearchPath = inSearchPath;
 		this.changesMonitored = changesMonitored;
 	}
+
 	public File getDirectory() {
 		return directory;
 	}
@@ -36,5 +37,11 @@ public class MonitoredDirectory {
 	}
 	public void setInSearchPath(boolean inSearchPath) {
 		this.inSearchPath = inSearchPath;
+	}
+	public boolean isFullScanFinished() {
+		return fullScanFinished;
+	}
+	public void setFullScanFinished(boolean fullScanFinished) {
+		this.fullScanFinished = fullScanFinished;
 	}
 }

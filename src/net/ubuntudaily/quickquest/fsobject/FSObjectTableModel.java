@@ -55,7 +55,7 @@ public class FSObjectTableModel extends QAbstractTableModel {
 	public void resetCriterion(String criterion) {
 
 		this.criterion = criterion;
-		this.criteria = new HashMap<>();
+		this.criteria = new HashMap<String, String>();
 		if (StringUtils.isNotBlank(criterion)) {
 
 			criteria.put("name", this.criterion);

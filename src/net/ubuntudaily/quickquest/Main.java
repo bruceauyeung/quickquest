@@ -2,7 +2,7 @@ package net.ubuntudaily.quickquest;
 
 import java.io.File;
 import java.nio.charset.Charset;
-import java.util.HashMap;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.BlockingQueue;
@@ -14,7 +14,9 @@ import java.util.concurrent.TimeUnit;
 
 import net.ubuntudaily.quickquest.commons.archive.ZipUtils;
 import net.ubuntudaily.quickquest.commons.collections.Lists;
+import net.ubuntudaily.quickquest.commons.collections.Maps;
 import net.ubuntudaily.quickquest.commons.io.DirectoryWatcher;
+import net.ubuntudaily.quickquest.commons.io.FileFindResult;
 import net.ubuntudaily.quickquest.commons.io.FileFinder;
 import net.ubuntudaily.quickquest.commons.io.FileUtils;
 import net.ubuntudaily.quickquest.commons.io.FilenameUtils;
@@ -24,6 +26,8 @@ import net.ubuntudaily.quickquest.fsobject.FileOperation;
 import net.ubuntudaily.quickquest.fsobject.FileOperationListener;
 import net.ubuntudaily.quickquest.fsobject.ViewModelNotice;
 import net.ubuntudaily.quickquest.fsobject.ViewModelNoticeHandler;
+import net.ubuntudaily.quickquest.preferences.MonitoredDirectory;
+import net.ubuntudaily.quickquest.preferences.Preferences;
 import net.ubuntudaily.quickquest.utils.FSObjectTableModelWorker;
 
 import org.slf4j.Logger;
@@ -86,15 +90,17 @@ public class Main extends QMainWindow {
 	private QAction downloadAct;
 	private ExecutorService executor = null;
 	private FSObjectTableModel tableModel;
-	private Future<Integer> fileFinderTask;
 	private Future<?> fsObjectIndexerTask;
+	private List<Future<?>> fileFinderTaskList = new ArrayList<Future<?>>();
 	private Future<?> dirWatcherTask;
 	private DirectoryWatcher dirWatcher;
 	private Future<?> noticeHandlerTask;
 	private QAction openAct;
 	private QAction extractAct;
 	private QAction prefsAct;
-	private static final String QUEST_PATH = "e:\\Movies";
+	private BlockingQueue<FileOperation> fsoIndexerQueue;
+	private BlockingQueue<ViewModelNotice> noticeQueue = new LinkedBlockingQueue<ViewModelNotice>(
+			500);
 	static {
 		QuickQuest.loadPreferences();
 		HyperSQLManager.startupDB();
@@ -106,8 +112,16 @@ public class Main extends QMainWindow {
 
 		this.resize(800, 600);
 		this.setWindowTitle(AppName);
-		this.setWindowIcon(new QIcon(
-				"classpath:net/ubuntudaily/quickquest/quickquest-icon-2.png"));// "quickquest-icon-1.png"
+		
+		final File quickQuestIcon = new File(QuickQuest.QUICK_QUEST_PROG_DIR, "quickquest-icon-128x128.png");
+		if(quickQuestIcon.isFile()){
+			
+			this.setWindowIcon(new QIcon(quickQuestIcon.getAbsolutePath()));// "quickquest-icon-1.png"
+		}
+		else{
+			this.setWindowIcon(new QIcon(
+					"classpath:net/ubuntudaily/quickquest/quickquest-icon-2.png"));// "quickquest-icon-1.png"
+		}
 
 		openAct = new QAction(tr("&Open"), this);
 		openAct.setShortcut(tr("Ctrl+O"));
@@ -216,40 +230,19 @@ public class Main extends QMainWindow {
 		int corePoolSize = 8;
 		int maximumPoolSize = 8;
 		long keepAliveTime = 60;
-		BlockingQueue<Runnable> workQueue = new LinkedBlockingQueue<>(10);
+		BlockingQueue<Runnable> workQueue = new LinkedBlockingQueue<Runnable>(10);
 		executor = new ThreadPoolExecutor(corePoolSize, maximumPoolSize,
 				keepAliveTime, TimeUnit.SECONDS, workQueue);
 
-		BlockingQueue<ViewModelNotice> noticeQueue = new LinkedBlockingQueue<>(
-				500);
-
-		ViewModelNoticeHandler noticeHandler = new ViewModelNoticeHandler(
-				tableView, tableModel, noticeQueue);
-		noticeHandlerTask = executor.submit(noticeHandler);
-
-		BlockingQueue<FileOperation> queue = new LinkedBlockingQueue<FileOperation>(
-				1000);
-
-		fileFinderTask = executor.submit(new FileFinder(new File(QUEST_PATH),
-				null, -1, 5, queue));
-		// fileFinderThread = new Thread(new FileFinder(new
-		// File("/home/bruce/下载"), null, -1, 5, queue));
-		// fileFinderThread.start();
-
-		fsObjectIndexerTask = executor.submit(new FSObjectIndexer(queue,
-				noticeQueue));
+		
+		startFindingAndWatching();
 
 		// Path pathToWatch = FileSystems.getDefault().getPath("/mnt/F/");
 		// JDK7DirectoryWatcher dirWatcher = new
 		// JDK7DirectoryWatcher(pathToWatch);
 		// dirWatcherTask = executor.submit(dirWatcher);
 
-		FileOperationListener fileOperationListener = new FileOperationListener(
-				queue);
-		List<File> dirList = Lists.newArrayList();
-		dirList.add(new File(QUEST_PATH));
-		dirWatcher = new DirectoryWatcher(dirList, fileOperationListener);
-		dirWatcherTask = (Future<?>) executor.submit(dirWatcher);
+
 		// dirWatcher.startWatch();
 
 		// FSObjectInfo obj = new FSObjectInfo();
@@ -282,6 +275,43 @@ public class Main extends QMainWindow {
 		// e.printStackTrace();
 		// }
 
+	}
+
+	public void startFindingAndWatching() {
+		ViewModelNoticeHandler noticeHandler = new ViewModelNoticeHandler(
+				tableView, tableModel, noticeQueue);
+		noticeHandlerTask = executor.submit(noticeHandler);
+
+		fsoIndexerQueue = new LinkedBlockingQueue<FileOperation>(
+				1000);
+		FileOperationListener fileOperationListener = new FileOperationListener(
+				fsoIndexerQueue);
+		List<File> toMonitoredDirsList = Lists.newArrayList();
+		
+		List<MonitoredDirectory> moniDirs = QuickQuest.getPreferences().getDirectoryTab().getMonitoredDirectories();
+		for(MonitoredDirectory moniDir : moniDirs){
+			if(!moniDir.isFullScanFinished()){
+				
+				final FileFinder fileFinder = new FileFinder(moniDir.getDirectory(),
+						null, -1, 5, fsoIndexerQueue);
+				fileFinder.state.connect(this, "slotFileFindFinished(FileFindResult)");
+				fileFinderTaskList.add(executor.submit(fileFinder));
+				
+			}
+			if(moniDir.isChangesMonitored()){
+				toMonitoredDirsList.add(moniDir.getDirectory());
+			}
+		}
+		
+		dirWatcher = new DirectoryWatcher(toMonitoredDirsList, fileOperationListener);
+		dirWatcherTask = (Future<?>) executor.submit(dirWatcher);
+		
+		// fileFinderThread = new Thread(new FileFinder(new
+		// File("/home/bruce/下载"), null, -1, 5, queue));
+		// fileFinderThread.start();
+
+		fsObjectIndexerTask = executor.submit(new FSObjectIndexer(fsoIndexerQueue,
+				noticeQueue));
 	}
 
 	/**
@@ -345,12 +375,28 @@ public class Main extends QMainWindow {
 
 	public void slotQuestTextChanged() {
 		String critira = questLineEdit.text();
-		Map<String, String> conditions = new HashMap<>();
+		Map<String, String> conditions = Maps.newHashMap();
 		conditions.put("name", critira);
 		executor.submit(new FSObjectTableModelWorker(this, critira));
 
 	}
-	
+	public void slotMonitoredDirectoryAdded(MonitoredDirectory dir){
+		if(dir.isChangesMonitored()){
+			final FileFinder task = new FileFinder(dir.getDirectory(),
+					null, -1, 5, fsoIndexerQueue);
+			task.state.connect(this, "slotFileFindFinished(FileFindResult)");
+			fileFinderTaskList.add(executor.submit(task));
+			dirWatcher.register(dir.getDirectory());
+		}
+	}
+	public void slotFileFindFinished(FileFindResult result){
+		if(result.isFullScanFinished()){
+			Preferences prefs = QuickQuest.getPreferences();
+			prefs.getDirectoryTab().getMonitoredDirectory(result.getStartDirectory()).setFullScanFinished(true);
+			QuickQuest.savePreferencesToDisk();
+		}
+		
+	}
 	public void slotEditPreferences() {
 		PreferencesDialog prefsDialog = new PreferencesDialog(this);
 		prefsDialog.exec();
@@ -362,7 +408,11 @@ public class Main extends QMainWindow {
 	@Override
 	@QtBlockedSlot
 	protected void closeEvent(QCloseEvent qCloseEvent) {
-		fileFinderTask.cancel(true);
+		
+		for(Future<?> f :fileFinderTaskList){		
+			f.cancel(true);
+		}
+		
 		fsObjectIndexerTask.cancel(true);
 		noticeHandlerTask.cancel(true);
 		// TODO:

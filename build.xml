@@ -1,14 +1,78 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<project name="QuickQuest" basedir="." default="unzip-gbk">
+<project name="quickquest" basedir="." default="pack">
 
-    <property name="src.dir" value="src"/>
-    <property name="classes.dir" value="classes"/>
+	<property name="src.dir" value="src" />
+	<property name="classes.dir" value="classes" />
+	<property name="build.dir" value="build" />
+	<property name="lib.dir" value="lib" />
+	<property name="dist.dir" value="dist" />
+	<path id="master-classpath">
+		<fileset dir="${lib.dir}">
+			<include name="*.jar" />
+			<exclude name="testng*.jar" />
+		</fileset>
+	</path>
+	<path id="manifest-classpath">
+		<fileset dir="${lib.dir}">
+			<include name="*.jar" />
+			<exclude name="testng*.jar" />
+			<exclude name="qtjambi*.jar" />
+		</fileset>
+	</path>
+	<target name="clean" description="Delete all generated files">
+		<delete dir="${dist.dir}" failonerror="false" />
+		<delete dir="${build.dir}" failonerror="false" />
+		<delete file="${ant.project.name}.jar" />
+	</target>
+	<target name="unzip-gbk" description="unzip those files whose file name are encoded with gbk">
+		<unzip src="/home/bruce/aa.zip" dest="/home/bruce" encoding="gbk" />
+	</target>
 
-    <target name="clean" description="Delete all generated files">
-        <delete dir="${classes.dir}" failonerror="false"/>
-        <delete file="${ant.project.name}.jar"/>
-    </target>
-    <target name="unzip-gbk" description="unzip those files whose file name are encoded with gbk">
-        <unzip src="/home/bruce/aa.zip" dest="/home/bruce" encoding="gbk" />
-    </target>
+	<target name="jar" depends="clean" description="build quick quest binary package">
+
+		<mkdir dir="${build.dir}" />
+
+		<copy todir="${build.dir}">
+			<fileset dir="${src.dir}">
+				<exclude name="**/*.java" />
+			</fileset>
+		</copy>
+
+		<javac srcdir="${src.dir}" destdir="${build.dir}" source="1.6" target="1.6" debug="on">
+
+			<compilerarg line=" -encoding UTF-8" />
+			<classpath refid="master-classpath" />
+		</javac>
+
+		<manifestclasspath property="manifest_cp" jarfile="${ant.project.name}.jar">
+			<classpath refid="manifest-classpath" />
+		</manifestclasspath>
+		<jar destfile="${ant.project.name}.jar" basedir="${build.dir}">
+			<manifest>
+				<!-- Who is building this jar? -->
+				<attribute name="Built-By" value="${user.name}" />
+				<!-- Information about the program itself -->
+				<attribute name="Implementation-Vendor" value="bruce.oy@gmail.com" />
+				<attribute name="Implementation-Title" value="QuickQuest" />
+				<attribute name="Implementation-Version" value="0.1" />
+				<attribute name="Class-Path" value="${manifest_cp}" />
+				<attribute name="Main-Class" value="net.ubuntudaily.quickquest.Main" />
+				<!-- details 
+		      <section name="common/MyClass.class">
+		        <attribute name="Sealed" value="false"/>
+		      </section>-->
+			</manifest>
+		</jar>
+	</target>
+
+	<target name="pack" depends="jar" description="pack a zip file which contains anything the end users need">
+		<mkdir dir="${dist.dir}" />
+		<zip destfile="${dist.dir}/quickquest.zip">
+			<fileset dir="." includes="quickquest.jar,quickquest.sh, README.md, quickquest-icon-128x128.png">
+				<include name="lib/**/*" />
+				<exclude name="lib/**/testng*.jar" />
+				<exclude name="lib/**/qtjambi*.jar" />
+			</fileset>
+		</zip>
+	</target>
 </project>

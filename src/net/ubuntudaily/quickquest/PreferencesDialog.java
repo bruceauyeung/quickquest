@@ -1,9 +1,7 @@
 package net.ubuntudaily.quickquest;
 
 import java.io.File;
-import java.util.ArrayList;
 
-import net.ubuntudaily.quickquest.commons.json.JsonHelper;
 import net.ubuntudaily.quickquest.preferences.MonitoredDirectory;
 import net.ubuntudaily.quickquest.preferences.Preferences;
 
@@ -88,10 +86,8 @@ public class PreferencesDialog extends QDialog {
 	}
 	
 	private void slotApplyBtnHandler(){
-		Preferences prefs = QuickQuest.getPreferences();
 		saveDirectoryTab();
-		final File jsonFile = new File(QuickQuest.QUICK_QUEST_CFG_DIR, "prefereces.json");
-		JsonHelper.toJson(jsonFile, prefs);
+		QuickQuest.savePreferencesToDisk();
 	}
 
 	private class DirectoryTab extends QWidget {
@@ -204,7 +200,8 @@ public class PreferencesDialog extends QDialog {
 	private class MoniDirSettingsPage extends QGroupBox {
 		private QCheckBox inSearchPathCtrl;
 		private QCheckBox changesMonitoredCtrl;
-
+		
+		
 		public MoniDirSettingsPage(String title, boolean isInSearchPath, boolean changesMonitored) {
 			super(title);
 
@@ -234,6 +231,8 @@ public class PreferencesDialog extends QDialog {
 	}
 	private void saveDirectoryTab() {
 		Preferences prefs = QuickQuest.getPreferences();
+		
+		// save database location, if this location is changed, hsqldb files will be moved to new location after reboot.
 		String databaseLocation = directoryTab.getDbLocLineEdit().text();
 		final File newDbLocFile = new File(databaseLocation);
 		final net.ubuntudaily.quickquest.preferences.DirectoryTab dirTab = prefs.getDirectoryTab();
@@ -242,7 +241,6 @@ public class PreferencesDialog extends QDialog {
 		}
 		dirTab.setDatabaseLocation(newDbLocFile);
 		
-		ArrayList<MonitoredDirectory> moniDirs = new ArrayList<MonitoredDirectory>();
 		
 		QListWidget moniDirListWidget = directoryTab.getMonitorDirListWidget();
 		QStackedWidget settingPages = directoryTab.getSettingsPagesWidget();
@@ -250,6 +248,11 @@ public class PreferencesDialog extends QDialog {
 		for(int i = 0;i < moniDirListWidget.count(); i++){
 			QListWidgetItem item = moniDirListWidget.item(i);
 			String moniDir = item.text();
+			
+			// if the directory does not exist, there is no need to search or monitor it
+			if(!new File(moniDir).exists()){
+				continue;
+			}
 			boolean isInSearchPath = true;
 			boolean changesMonitored = true;
 			QWidget settingsPage = settingPages.widget(i);
@@ -257,11 +260,32 @@ public class PreferencesDialog extends QDialog {
 				MoniDirSettingsPage moniDirSettingsPage = (MoniDirSettingsPage) settingsPage;
 				isInSearchPath = moniDirSettingsPage.getInSearchPathCtrl().isChecked();
 				changesMonitored = moniDirSettingsPage.getChangesMonitoredCtrl().isChecked();
+				MonitoredDirectory existed = dirTab.getMonitoredDirectory(new File(moniDir));
+				if(existed != null){
+					if(existed.isChangesMonitored() != changesMonitored){
+						existed.setChangesMonitored(changesMonitored);
+						
+						//TODO: watch or unwatch directory here.
+						if(this.parentWidget() instanceof Main){
+							Main main = (Main)this.parentWidget();
+							main.slotMonitoredDirectoryAdded(existed);
+						}
+					}
+					if(existed.isInSearchPath() != isInSearchPath){
+						existed.setInSearchPath(isInSearchPath);
+					}
+					
+				}else{
+					
+					final MonitoredDirectory addedMoniDir = new MonitoredDirectory(new File(moniDir), isInSearchPath, changesMonitored);
+					dirTab.getMonitoredDirectories().add(addedMoniDir);
+					if(this.parentWidget() instanceof Main){
+						Main main = (Main)this.parentWidget();
+						main.slotMonitoredDirectoryAdded(addedMoniDir);
+					}
+				}
 			}
-			
-			moniDirs.add(new MonitoredDirectory(new File(moniDir), isInSearchPath, changesMonitored));
 		}
-		dirTab.setMonitoredDirectories(moniDirs);
 		//directoryTab
 		
 	}

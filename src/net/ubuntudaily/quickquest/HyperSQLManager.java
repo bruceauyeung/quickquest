@@ -7,14 +7,13 @@ import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
-import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.concurrent.CopyOnWriteArraySet;
 
 import net.ubuntudaily.quickquest.commons.collections.Lists;
+import net.ubuntudaily.quickquest.commons.collections.Maps;
 import net.ubuntudaily.quickquest.commons.dbutils.DbHelper;
 import net.ubuntudaily.quickquest.commons.io.FileUtils;
 import net.ubuntudaily.quickquest.commons.io.FilenameUtils;
@@ -475,11 +474,11 @@ public class HyperSQLManager {
 	public static List<FSObject> selectEquals(Map<String, String> conditions) {
 
 		List<String> allTableNames = listAllTableNames();
-		List<FSObject> fsObjs = new ArrayList<>(0);
+		List<FSObject> fsObjs = Lists.newArrayList();
 		String whereClause = "";
 
 		if (conditions == null) {
-			conditions = new HashMap<>();
+			conditions = Maps.newHashMap();
 		}
 		long start = System.nanoTime();
 		// http://www.hsqldb.org/doc/guide/ch09.html
@@ -527,7 +526,7 @@ public class HyperSQLManager {
 		String whereClause = "";
 
 		if (conditions == null) {
-			conditions = new HashMap<>();
+			conditions = Maps.newHashMap();
 		}
 		long start = System.nanoTime();
 		// http://www.hsqldb.org/doc/guide/ch09.html
@@ -613,11 +612,11 @@ public class HyperSQLManager {
 	}
 	public static List<FSObject> selectLike(Map<String, String> conditions) {
 		List<String> allTableNames = listAllTableNames();
-		List<FSObject> fsObjs = new ArrayList<>(0);
+		List<FSObject> fsObjs = Lists.newArrayListWithCapacity(0);
 		String whereClause = "";
 
 		if (conditions == null) {
-			conditions = new HashMap<>();
+			conditions = Maps.newHashMap();
 		}
 		long start = System.nanoTime();
 		// http://www.hsqldb.org/doc/guide/ch09.html
@@ -677,11 +676,11 @@ public class HyperSQLManager {
 	}
 	public static List<FSObject> selectLike(Map<String, String> conditions, Range<Integer> rownum) {
 		List<String> allTableNames = listAllTableNames();
-		List<FSObject> fsObjs = new ArrayList<>(0);
+		List<FSObject> fsObjs = Lists.newArrayListWithCapacity(0);
 		String whereClause = "";
 
 		if (conditions == null) {
-			conditions = new HashMap<>();
+			conditions = Maps.newHashMap();
 		}
 
 		// http://www.hsqldb.org/doc/guide/ch09.html

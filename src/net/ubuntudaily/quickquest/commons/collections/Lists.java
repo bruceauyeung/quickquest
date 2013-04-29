@@ -21,4 +21,9 @@ public final class Lists
     Collections.addAll(list, elements);
     return list;
   }
+  public static <E> ArrayList<E> newArrayListWithCapacity(int initialArraySize)
+  {
+    Validate.isTrue(initialArraySize >= 0);
+    return new ArrayList(initialArraySize);
+  }
 }

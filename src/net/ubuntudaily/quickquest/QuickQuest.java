@@ -2,11 +2,13 @@ package net.ubuntudaily.quickquest;
 
 import java.io.File;
 import java.io.IOException;
+import java.net.URL;
 
 import net.ubuntudaily.quickquest.commons.json.JsonHelper;
 import net.ubuntudaily.quickquest.preferences.Preferences;
 
 import org.apache.commons.io.FileUtils;
+import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -15,9 +17,31 @@ public class QuickQuest {
 
 	private static final Logger LOG = LoggerFactory.getLogger(QuickQuest.class);
 	public static final File USER_HOME = new File(System.getProperty("user.home"));
+	public static final File QUICK_QUEST_PROG_DIR=initQuickQuestProgDir();
 	public static final File QUICK_QUEST_CFG_DIR = new File(USER_HOME, ".quickquest");
 	private static Preferences prefs = new Preferences();
 	
+	private static final File initQuickQuestProgDir(){
+		File f = null;
+		
+		String progPath = System.getProperty("quickquest_prog_dir");
+		if(StringUtils.isEmpty(progPath)){
+			
+			// quickquest is launched not by quickquest.sh
+			URL parentURL = QuickQuest.class.getResource("/");
+			if(parentURL == null){
+				LOG.debug("parentURL is null");
+			}
+			
+			f = net.ubuntudaily.quickquest.commons.io.FileUtils.fromURL(parentURL);
+		}else{
+			
+			// quickquest is launched by quickquest.sh
+			f = new File(progPath);
+		}
+
+		return f;
+	}
 	public static final void loadPreferences(){
 		final File jsonFile = new File(QuickQuest.QUICK_QUEST_CFG_DIR, "prefereces.json");
 		if(jsonFile.exists()){
@@ -54,5 +78,10 @@ public class QuickQuest {
 	}
 	public static final Preferences getPreferences(){
 		return prefs;
+	}
+	
+	public static final void savePreferencesToDisk(){
+		final File jsonFile = new File(QuickQuest.QUICK_QUEST_CFG_DIR, "prefereces.json");
+		JsonHelper.toJson(jsonFile, prefs);
 	}
 }

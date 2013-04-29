@@ -6,11 +6,13 @@ import java.util.List;
 
 import net.ubuntudaily.quickquest.QuickQuest;
 
-public class DirectoryTab {
+public class DirectoryTab{
 	
 	File databaseLocation = QuickQuest.QUICK_QUEST_CFG_DIR;
 	File oldDatabaseLocation = null;
 	List<MonitoredDirectory> monitoredDirectories = new ArrayList<MonitoredDirectory>();
+	
+	
 	public File getDatabaseLocation() {
 		return databaseLocation;
 	}
@@ -28,6 +30,27 @@ public class DirectoryTab {
 	public void addMonitoredDirectory(MonitoredDirectory dir){
 		monitoredDirectories.add(dir);
 	}
+	
+	public MonitoredDirectory getMonitoredDirectory(File dir){
+		for(MonitoredDirectory moniDir: monitoredDirectories){
+			if(moniDir.getDirectory().equals(dir)){
+				return moniDir;
+			}
+		}
+		return null;
+	}
+	public boolean containsMonitoredDirectory(String dirPath){
+		for(MonitoredDirectory moniDir: monitoredDirectories){
+			if(moniDir.getDirectory().equals(new File(dirPath))){
+				return true;
+			}
+		}
+		return false;
+	}
+	/**
+	 * returning a not-null value means quickquest will try to move hsqldb's files to new location
+	 * @return
+	 */
 	public File getOldDatabaseLocation() {
 		return oldDatabaseLocation;
 	}

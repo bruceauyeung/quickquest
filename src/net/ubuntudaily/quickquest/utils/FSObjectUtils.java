@@ -3,14 +3,15 @@ package net.ubuntudaily.quickquest.utils;
 import java.io.File;
 import java.io.IOException;
 import java.sql.Timestamp;
-import java.util.ArrayList;
 import java.util.List;
 
 import net.ubuntudaily.quickquest.HyperSQLManager;
+import net.ubuntudaily.quickquest.commons.collections.Lists;
 import net.ubuntudaily.quickquest.commons.io.FileUtils;
 import net.ubuntudaily.quickquest.fsobject.FSObject;
 import net.ubuntudaily.quickquest.fsobject.FSObjectType;
 import net.ubuntudaily.quickquest.fsobject.FSObjectVO;
+
 
 public class FSObjectUtils {
 
@@ -45,7 +46,7 @@ public class FSObjectUtils {
 	}
 
 	public static List<FSObjectVO> transform(List<FSObject> all) {
-		List<FSObjectVO> voList = new ArrayList<>();
+		List<FSObjectVO> voList = Lists.newArrayList();
 		for (FSObject objInfo : all) {
 			FSObjectVO vo = new FSObjectVO();
 			vo.setName(objInfo.getName());

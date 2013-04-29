@@ -11,7 +11,7 @@ import org.slf4j.LoggerFactory;
 public class FSObjectCache {
 
 	private static Logger LOGGER = LoggerFactory.getLogger(FSObjectCache.class);
-	private final ConcurrentMap<Integer, FSObjectVO> cache = new ConcurrentHashMap<>(MAX_CACHE_SIZE);
+	private final ConcurrentMap<Integer, FSObjectVO> cache = new ConcurrentHashMap<Integer, FSObjectVO>(MAX_CACHE_SIZE);
 	private final Range<Integer> rowNumRange;
 	public static final int MAX_CACHE_SIZE = 50;
 

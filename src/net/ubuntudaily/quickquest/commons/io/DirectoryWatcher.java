@@ -16,7 +16,7 @@ import org.slf4j.LoggerFactory;
 
 public class DirectoryWatcher implements Callable<Void>{
 	private static final Logger LOG=LoggerFactory.getLogger(DirectoryWatcher.class);
-	private ConcurrentHashMap<File, Integer> watchedDirs = new ConcurrentHashMap<>();
+	private ConcurrentHashMap<File, Integer> watchedDirs = new ConcurrentHashMap<File, Integer>();
 	private final List<File> toWatchDirs;
 	private JNotifyListener listener;
 
@@ -32,7 +32,7 @@ public class DirectoryWatcher implements Callable<Void>{
 	public void stopWatch(){
 		unregisterAll();
 	}
-	public boolean unregister(File dir){
+	public synchronized boolean unregister(File dir){
 		boolean succ = false;
 		if (watchedDirs.containsKey(dir)) {
 			
@@ -50,8 +50,8 @@ public class DirectoryWatcher implements Callable<Void>{
 		}
 		return succ;
 	}
-	public boolean register(File dir, JNotifyListener listener) {
-		if(dir == null || !dir.isDirectory() || listener == null){
+	public synchronized boolean register(File dir) {
+		 if(dir == null || !dir.isDirectory() || this.listener == null){
 			return false;
 		}
 		if (!watchedDirs.containsKey(dir)) {
@@ -60,8 +60,10 @@ public class DirectoryWatcher implements Callable<Void>{
 			boolean watchSubtree = true;
 			int watchID = 0;
 			try {
+				
+				//watching is asynchronous
 				watchID = JNotify.addWatch(dir.getAbsolutePath(), mask,
-						watchSubtree, listener);
+						watchSubtree, this.listener);
 				watchedDirs.put(dir, Integer.valueOf(watchID));
 			} catch (Throwable t) {
 				
@@ -83,7 +85,7 @@ public class DirectoryWatcher implements Callable<Void>{
 			 if(Thread.currentThread().isInterrupted()){
 				 break;
 			 }
-			 register(f, this.listener);
+			 register(f);
 		 }
 	}
 	public void unregisterAll() {

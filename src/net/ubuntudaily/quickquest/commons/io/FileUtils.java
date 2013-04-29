@@ -4,6 +4,8 @@ import java.awt.Desktop;
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
+import java.net.URISyntaxException;
+import java.net.URL;
 import java.util.List;
 
 import net.ubuntudaily.quickquest.commons.collections.Lists;
@@ -145,5 +147,17 @@ public class FileUtils extends org.apache.commons.io.FileUtils {
 			}
 		}
 		return false;
+	}
+	
+	public static final File fromURL(URL url){
+		File f = null;
+		
+		try {
+			f = new File(url.toURI());
+		} catch (URISyntaxException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+		return f;
 	}
 }
