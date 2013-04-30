@@ -75,13 +75,13 @@ public class HyperSQLManager {
 		QueryRunner qr = new QueryRunner();
 		String sql = "select * from " + getTableName(fsobj.getDepth()) + " where name=? and depth=? and poid=?";
 		Object[] params = new Object[]{fsobj.getName(), fsobj.getDepth(), fsobj.getPoid()};
-		BeanListHandler<FSObject> blh = new BeanListHandler(
+		BeanListHandler<FSObject> blh = new BeanListHandler<FSObject>(
 				FSObject.class);
 		List<FSObject> newObjs = null;
 		Connection conn = null;
 		try {
 			conn = getConnection();
-			newObjs = qr.query(conn, sql, params, blh);
+			newObjs = qr.query(conn, sql, blh, params);
 		} catch (SQLException e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
@@ -230,6 +230,11 @@ public class HyperSQLManager {
 
 			}
 			stmt.execute("SET DATABASE SQL SYNTAX ORA TRUE;");
+			
+			//http://www.hsqldb.org/doc/2.0/guide/sessions-chapt.html#snc_tx_mvcc
+			stmt.execute("SET DATABASE TRANSACTION CONTROL MVCC");
+			stmt.execute("SET DATABASE DEFAULT ISOLATION LEVEL READ COMMITTED");
+			stmt.execute("SET DATABASE TRANSACTION ROLLBACK ON DEADLOCK TRUE");
 			conn.commit();
 			allCreatedTables.clear();
 			allCreatedTables.addAll(listAllTableNames());
@@ -342,7 +347,7 @@ public class HyperSQLManager {
 		params.add(FileUtils.getNonEmptyName(file));
 		
 		QueryRunner qr = new QueryRunner();
-		BeanListHandler<FSObject> blh = new BeanListHandler(
+		BeanListHandler<FSObject> blh = new BeanListHandler<FSObject>(
 				FSObject.class);
 		Connection conn = null;
 		try {
@@ -504,7 +509,7 @@ public class HyperSQLManager {
 			stmt = conn.createStatement();
 			ResultSet rs = stmt.executeQuery(selStr);
 			conn.commit();
-			BeanListHandler<FSObject> blh = new BeanListHandler(
+			BeanListHandler<FSObject> blh = new BeanListHandler<FSObject>(
 					FSObject.class);
 			fsObjs = blh.handle(rs);
 
@@ -644,7 +649,7 @@ public class HyperSQLManager {
 			stmt = conn.createStatement();
 			ResultSet rs = stmt.executeQuery(selStr);
 			conn.commit();
-			BeanListHandler<FSObject> blh = new BeanListHandler(
+			BeanListHandler<FSObject> blh = new BeanListHandler<FSObject>(
 					FSObject.class);
 			fsObjs = blh.handle(rs);
 
@@ -727,7 +732,7 @@ public class HyperSQLManager {
 			stmt = conn.createStatement();
 			ResultSet rs = stmt.executeQuery(selectStmt.toString());
 			conn.commit();
-			BeanListHandler<FSObject> blh = new BeanListHandler(
+			BeanListHandler<FSObject> blh = new BeanListHandler<FSObject>(
 					FSObject.class);
 			fsObjs = blh.handle(rs);
 

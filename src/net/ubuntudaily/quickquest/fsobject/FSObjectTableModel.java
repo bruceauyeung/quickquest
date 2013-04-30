@@ -166,9 +166,7 @@ public class FSObjectTableModel extends QAbstractTableModel {
 					.getMinimum(), cache.getRowNumRange().getMaximum());
 			if (row < cache.getRowNumRange().getMinimum()) {
 				startRow = row - FSObjectCache.MAX_CACHE_SIZE + 1;
-				if (startRow < 0) {
-					startRow = 0;
-				}
+
 				endRow = row;
 			} else if (row > cache.getRowNumRange().getMaximum()) {
 				startRow = row;
@@ -178,7 +176,11 @@ public class FSObjectTableModel extends QAbstractTableModel {
 			startRow = row;
 			endRow = row + FSObjectCache.MAX_CACHE_SIZE - 1;
 		}
-
+		
+		if (startRow < 0) {
+			startRow = 0;
+		}
+		
 		Range<Integer> between = Range.between(startRow, endRow);
 		long start = System.nanoTime();
 		List<FSObject> result = HyperSQLManager.selectLike(this.criteria,

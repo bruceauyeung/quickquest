@@ -24,7 +24,7 @@ public class QuickQuest {
 	private static final File initQuickQuestProgDir(){
 		File f = null;
 		
-		String progPath = System.getProperty("quickquest_prog_dir");
+		String progPath = System.getProperty("quickquest.prog.dir");
 		if(StringUtils.isEmpty(progPath)){
 			
 			// quickquest is launched not by quickquest.sh

@@ -23,6 +23,7 @@ import net.ubuntudaily.quickquest.commons.io.FilenameUtils;
 import net.ubuntudaily.quickquest.fsobject.FSObjectTableModel;
 import net.ubuntudaily.quickquest.fsobject.FSObjectVO;
 import net.ubuntudaily.quickquest.fsobject.FileOperation;
+import net.ubuntudaily.quickquest.fsobject.FileOperationFlowController;
 import net.ubuntudaily.quickquest.fsobject.FileOperationListener;
 import net.ubuntudaily.quickquest.fsobject.ViewModelNotice;
 import net.ubuntudaily.quickquest.fsobject.ViewModelNoticeHandler;
@@ -79,7 +80,7 @@ public class Main extends QMainWindow {
 
 	private static final Logger LOGGER = LoggerFactory.getLogger(Main.class);
 	private QLineEdit questLineEdit;
-	private QTableView tableView;
+	private QTableView matchedFilesTableView;
 	private QAction aboutQtJambiAct;
 	private QAction aboutQtAct;
 	private QAction aboutAct;
@@ -102,10 +103,13 @@ public class Main extends QMainWindow {
 	private BlockingQueue<ViewModelNotice> noticeQueue = new LinkedBlockingQueue<ViewModelNotice>(
 			500);
 	static {
+		
 		QuickQuest.loadPreferences();
+		FileOperationFlowController.start();
 		HyperSQLManager.startupDB();
 		// HyperSQLManager.dropAllTables();
 		HyperSQLManager.createTables(0, 1, 2);
+		
 	}
 
 	public Main() {
@@ -178,10 +182,10 @@ public class Main extends QMainWindow {
 		// http://doc.qt.digia.com/qtjambi-4.5.2_01/index.html
 		// http://qt-project.org/doc/qt-4.8/itemviews-addressbook.html
 		// http://www.qtcentre.org/threads/16794-QTableView-setColumnWidth-not-working
-		tableView = new QTableView(this);
+		matchedFilesTableView = new QTableView(this);
 		QVBoxLayout vboxLayout = new QVBoxLayout(this);
 		vboxLayout.addWidget(questLineEdit);
-		vboxLayout.addWidget(tableView);
+		vboxLayout.addWidget(matchedFilesTableView);
 		QFrame frame = new QFrame(this);
 		frame.setLayout(vboxLayout);
 		this.setCentralWidget(frame);
@@ -190,16 +194,16 @@ public class Main extends QMainWindow {
 		tableModel.rowCountChanged.connect(this, "slotRowCountChanged(int)");
 		QSortFilterProxyModel proxyModel = new QSortFilterProxyModel(this);
 		proxyModel.setSourceModel(tableModel);
-		tableView.setModel(proxyModel);
+		matchedFilesTableView.setModel(proxyModel);
 
-		tableView.setWordWrap(false);
-		tableView.verticalHeader().hide();
+		matchedFilesTableView.setWordWrap(false);
+		matchedFilesTableView.verticalHeader().hide();
 
 		// must be called after setModel
-		tableView.setColumnWidth(0, 200);
-		tableView.setColumnWidth(1, 300);
-		tableView.setColumnWidth(2, 100);
-		tableView.setColumnWidth(3, 100);
+		matchedFilesTableView.setColumnWidth(0, 200);
+		matchedFilesTableView.setColumnWidth(1, 300);
+		matchedFilesTableView.setColumnWidth(2, 100);
+		matchedFilesTableView.setColumnWidth(3, 100);
 		//tableView.setColumnHidden(4, true);
 		//tableView.setColumnHidden(5, true);
 
@@ -207,17 +211,18 @@ public class Main extends QMainWindow {
 		// fsObjectTableView.horizontalHeader().setStretchLastSection(true);
 		// fsObjectTableView.setSortingEnabled(true);
 		// fsObjectTableView.sortByColumn(2, Qt.SortOrder.DescendingOrder);
-		tableView.setShowGrid(false);
-		tableView.setSelectionBehavior(QTableView.SelectionBehavior.SelectRows);
-		LOGGER.debug(tableView.verticalScrollBarPolicy().toString());
+		matchedFilesTableView.setShowGrid(false);
+		matchedFilesTableView.setSelectionBehavior(QTableView.SelectionBehavior.SelectRows);
+		LOGGER.debug(matchedFilesTableView.verticalScrollBarPolicy().toString());
 
 		// defaults to Qt.ScrollBarPolicy.ScrollBarAsNeeded
 		// fsoTableView.setVerticalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAsNeeded);
 
-		tableView.setContextMenuPolicy(Qt.ContextMenuPolicy.CustomContextMenu);
-		tableView.customContextMenuRequested.connect(this,
+		matchedFilesTableView.setContextMenuPolicy(Qt.ContextMenuPolicy.CustomContextMenu);
+		matchedFilesTableView.customContextMenuRequested.connect(this,
 				"slotCustomContextMenuRequested(QPoint)");
 
+		matchedFilesTableView.doubleClicked.connect(this, "slotDoubleClicked(QModelIndex)");
 		ctxMenu = new QMenu(this);
 		ctxMenu.addAction(openAct);
 		ctxMenu.addAction(extractAct);
@@ -279,7 +284,7 @@ public class Main extends QMainWindow {
 
 	public void startFindingAndWatching() {
 		ViewModelNoticeHandler noticeHandler = new ViewModelNoticeHandler(
-				tableView, tableModel, noticeQueue);
+				matchedFilesTableView, tableModel, noticeQueue);
 		noticeHandlerTask = executor.submit(noticeHandler);
 
 		fsoIndexerQueue = new LinkedBlockingQueue<FileOperation>(
@@ -326,7 +331,7 @@ public class Main extends QMainWindow {
 	}
 
 	public void slotOpenWithDefApp() {
-		QItemSelectionModel selModel = tableView.selectionModel();
+		QItemSelectionModel selModel = matchedFilesTableView.selectionModel();
 		List<QModelIndex> idxes = selModel.selection().indexes();
 		if (idxes.size() > 0) {
 
@@ -334,18 +339,23 @@ public class Main extends QMainWindow {
 			//QWidget widget = tableView.indexWidget(idxes.get(0));
 			
 			//LOGGER.debug("rowNum:{},poid:{}",.)
-			FSObjectVO fsovo = tableModel.getRow(idxes.get(0).row());
-			File file = new File(fsovo.getPath(), fsovo.getName());
-
-			if (!FileUtils.openWithDefApp(file)) {
-
-				// TODO: tell user this file can not be opened.
-			}
+			final QModelIndex qModelIndex = idxes.get(0);
+			slotDoubleClicked(qModelIndex);
 
 		}
 	}
+
+	public void slotDoubleClicked(final QModelIndex qModelIndex) {
+		FSObjectVO fsovo = tableModel.getRow(qModelIndex.row());
+		File file = new File(fsovo.getPath(), fsovo.getName());
+
+		if (!FileUtils.openWithDefApp(file)) {
+
+			// TODO: tell user this file can not be opened.
+		}
+	}
 	public void slotExtractToSameDir() {
-		QItemSelectionModel selModel = tableView.selectionModel();
+		QItemSelectionModel selModel = matchedFilesTableView.selectionModel();
 		List<QModelIndex> idxes = selModel.selection().indexes();
 		if (idxes.size() > 0) {
 
@@ -362,7 +372,7 @@ public class Main extends QMainWindow {
 
 		}
 	}
-	
+
 	public void slotCustomContextMenuRequested(QPoint p) {
 
 		ctxMenu.exec(QCursor.pos());
@@ -380,7 +390,7 @@ public class Main extends QMainWindow {
 		executor.submit(new FSObjectTableModelWorker(this, critira));
 
 	}
-	public void slotMonitoredDirectoryAdded(MonitoredDirectory dir){
+	public void addMonitoredDirectory(MonitoredDirectory dir){
 		if(dir.isChangesMonitored()){
 			final FileFinder task = new FileFinder(dir.getDirectory(),
 					null, -1, 5, fsoIndexerQueue);
@@ -389,6 +399,17 @@ public class Main extends QMainWindow {
 			dirWatcher.register(dir.getDirectory());
 		}
 	}
+	public void modMonitoredDirectory(MonitoredDirectory dir){
+		// no need to cancel the FileFinder task
+		if(!dir.isChangesMonitored()){
+			dirWatcher.unregister(dir.getDirectory());
+		}
+	}	
+	public void delMonitoredDirectory(MonitoredDirectory dir){
+
+		//TODO:cancel the FileFinder task if needed
+		dirWatcher.unregister(dir.getDirectory());
+	}	
 	public void slotFileFindFinished(FileFindResult result){
 		if(result.isFullScanFinished()){
 			Preferences prefs = QuickQuest.getPreferences();
@@ -408,11 +429,11 @@ public class Main extends QMainWindow {
 	@Override
 	@QtBlockedSlot
 	protected void closeEvent(QCloseEvent qCloseEvent) {
-		
+		FileOperationFlowController.stop();
 		for(Future<?> f :fileFinderTaskList){		
 			f.cancel(true);
 		}
-		
+		dirWatcher.unregisterAll();
 		fsObjectIndexerTask.cancel(true);
 		noticeHandlerTask.cancel(true);
 		// TODO:
@@ -429,11 +450,12 @@ public class Main extends QMainWindow {
 		}
 
 		HyperSQLManager.shutdownDB();
+		
 		super.closeEvent(qCloseEvent);
 	}
 
 	public QTableView getTableView() {
-		return tableView;
+		return matchedFilesTableView;
 	}
 
 	public FSObjectTableModel getTableModel() {

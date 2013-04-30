@@ -36,7 +36,14 @@ public class ViewModelNoticeHandler implements Runnable {
 				LOG.debug(e.getMessage());
 				Thread.currentThread().interrupt();
 			}
+			
 			if(notice != null){
+				if(FileOperationType.MODIFY.equals(notice.getType())){
+					if(!FileOperationFlowController.modifyAllowed(notice.getFSObject())){
+						continue;
+					}
+				}
+				
 				if(HyperSQLManager.match(notice.getFSObject().getName(), model.getCriterion())){
 					if(FileOperationType.DELETE.equals(notice.getType())){
 						

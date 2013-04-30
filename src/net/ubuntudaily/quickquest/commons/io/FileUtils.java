@@ -3,16 +3,19 @@ package net.ubuntudaily.quickquest.commons.io;
 import java.awt.Desktop;
 import java.io.File;
 import java.io.IOException;
-import java.io.InputStream;
 import java.net.URISyntaxException;
 import java.net.URL;
-import java.util.List;
+import java.util.Map;
 
-import net.ubuntudaily.quickquest.commons.collections.Lists;
+import net.ubuntudaily.quickquest.commons.collections.Maps;
 import net.ubuntudaily.quickquest.commons.lang.OSValidator;
 
-import org.apache.commons.io.IOUtils;
-import org.apache.commons.lang3.StringUtils;
+import org.apache.commons.exec.CommandLine;
+import org.apache.commons.exec.DefaultExecuteResultHandler;
+import org.apache.commons.exec.DefaultExecutor;
+import org.apache.commons.exec.ExecuteException;
+import org.apache.commons.exec.Executor;
+import org.apache.commons.exec.PumpStreamHandler;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -60,8 +63,17 @@ public class FileUtils extends org.apache.commons.io.FileUtils {
 		return false;
 	}
 
+	/**
+	 * under my openSUSE12.3 system, this method can not handle directories correctly. 
+	 * for example, qmmp program will be launched when open a directory using this method.
+	 * @param file
+	 * @return
+	 */
 	public static boolean OpenWithDefAppPureJava(File file) {
 
+		if(!file.exists()){
+			return false;
+		}
 		File toOpen = file;
 		boolean succ = false;
 		if (Desktop.isDesktopSupported()) {
@@ -81,31 +93,32 @@ public class FileUtils extends org.apache.commons.io.FileUtils {
 	}
 
 	public static boolean openWithDefAppXdgOpen(File file) {
-		List<String> cmd = Lists.newArrayList();
-		cmd.add("xdg-open");
-		String openArg = file.getName();
-		cmd.add(openArg);
-
-		ProcessBuilder pb = new ProcessBuilder(cmd);
-		pb.directory(file.getParentFile());
+		
+		if(!file.exists()){
+			return false;
+		}
 		boolean succ = true;
+		CommandLine cmdLine = new CommandLine("xdg-open");
+		cmdLine.addArgument("${file}");
+		Map<String, File> map = Maps.newHashMap();
+		map.put("file", file);
+		cmdLine.setSubstitutionMap(map);
+
+		DefaultExecuteResultHandler resultHandler = new DefaultExecuteResultHandler();
+
+		Executor executor = new DefaultExecutor();
+		executor.setStreamHandler(new PumpStreamHandler());
 		try {
-
-			// java just start a process and then run the following codes as
-			// needed.
-			Process proc = pb.start();
-			final InputStream errorStream = proc.getErrorStream();
-			if (errorStream != null) {
-				String err = IOUtils.toString(errorStream);
-				if (StringUtils.isNotEmpty(err)) {
-					succ = false;
-				}
-
-			}
-		} catch (IOException e) {
-			LOG.debug(e.getMessage());
+			executor.execute(cmdLine, resultHandler);
+		} catch (ExecuteException e1) {
+			LOG.error(e1.getMessage());
+			succ = false;
+		} catch (IOException e1) {
+			LOG.error(e1.getMessage());
 			succ = false;
 		}
+		
+
 		return succ;
 	}
 
@@ -115,22 +128,20 @@ public class FileUtils extends org.apache.commons.io.FileUtils {
 	 */
 	public static final boolean openWithDefApp(File file) {
 		boolean succ = true;
-		if (!FileUtils.OpenWithDefAppPureJava(file)) {
+		
+		if (OSValidator.isUnix()) {
 
-			if (OSValidator.isUnix()) {
-
-				if (!FileUtils.openWithDefAppXdgOpen(file)) {
-					// TODO: tell user this file can not be opened.
-					succ = false;
-				}
-			} else if (OSValidator.isWindows()) {
-
-				succ = false;
-
-			} else if (OSValidator.isMac()) {
+			if (!FileUtils.openWithDefAppXdgOpen(file)) {
+				// TODO: tell user this file can not be opened.
 				succ = false;
 			}
-		}
+		} else if (OSValidator.isWindows() || OSValidator.isMac()) {
+
+			if (!FileUtils.OpenWithDefAppPureJava(file)) {
+				succ = false;
+			}
+
+		} 
 		return succ;
 	}
 

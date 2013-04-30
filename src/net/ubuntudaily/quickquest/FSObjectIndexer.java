@@ -30,7 +30,7 @@ public class FSObjectIndexer implements Callable<Void> {
 		this.noticeQueue = noticeQueue;
 	}
 
-	private void index(FileOperation fo) {
+	private void index(FileOperation fo) throws InterruptedException {
 		if (fo == null) {
 
 			return;
@@ -53,18 +53,13 @@ public class FSObjectIndexer implements Callable<Void> {
 
 	}
 
-	private void notifyViewModel(FileOperationType type, FSObject fSObject) {
-		try {
-			LOGGER.debug("start emitting a notice .");
-			this.noticeQueue.put(new ViewModelNotice(type, null, fSObject));
-			LOGGER.debug("finish emitting a notice.");
-		} catch (InterruptedException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		}
+	private void notifyViewModel(FileOperationType type, FSObject fSObject) throws InterruptedException {
+		LOGGER.debug("start emitting a notice .");
+		this.noticeQueue.put(new ViewModelNotice(type, null, fSObject));
+		LOGGER.debug("finish emitting a notice.");
 	}
 
-	private void updateFile(File after) {
+	private void updateFile(File after) throws InterruptedException {
 		HyperSQLManager.ensureTableExistence(FileUtils
 				.calculateFileDepth(after));
 		FSObject fsObjInfo = HyperSQLManager.findEquivalent(after);
@@ -87,7 +82,7 @@ public class FSObjectIndexer implements Callable<Void> {
 
 	}
 
-	private void renameFile(File before, File after) {
+	private void renameFile(File before, File after) throws InterruptedException {
 		HyperSQLManager.ensureTableExistence(FileUtils
 				.calculateFileDepth(before));
 		FSObject fsObjInfo = HyperSQLManager.findEquivalent(before);
@@ -110,7 +105,7 @@ public class FSObjectIndexer implements Callable<Void> {
 
 	}
 
-	private void deleteFile(File file) {
+	private void deleteFile(File file) throws InterruptedException {
 		HyperSQLManager
 				.ensureTableExistence(FileUtils.calculateFileDepth(file));
 		FSObject fsObjInfo = HyperSQLManager.findEquivalent(file);
@@ -128,7 +123,7 @@ public class FSObjectIndexer implements Callable<Void> {
 		}
 	}
 
-	private void insertFile(File file) {
+	private void insertFile(File file) throws InterruptedException {
 
 		HyperSQLManager
 				.ensureTableExistence(FileUtils.calculateFileDepth(file));
@@ -179,16 +174,18 @@ public class FSObjectIndexer implements Callable<Void> {
 	@Override
 	public Void call() throws Exception {
 		while (!Thread.currentThread().isInterrupted()) {
-			FileOperation poll = null;
+			
 			try {
+				FileOperation poll = null;
 				LOGGER.debug("start taking a file operation.");
 				poll = this.readInQueue.take();
 				LOGGER.debug("finish taking a file operation.");
+				index(poll);
 			} catch (InterruptedException e1) {
 				// TODO Auto-generated catch block
 				Thread.currentThread().interrupt();
 			}
-			index(poll);
+			
 
 		}
 		return null;
