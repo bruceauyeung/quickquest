@@ -722,7 +722,7 @@ public class HyperSQLManager {
 
 			
 		}
-		LOGGER.debug(selectStmt.toString());
+		
 		Statement stmt = null;
 		Connection conn = null;
 
@@ -737,7 +737,7 @@ public class HyperSQLManager {
 			fsObjs = blh.handle(rs);
 
 		} catch (SQLException e) {
-			// TODO Auto-generated catch block
+			LOGGER.error(selectStmt.toString());
 			e.printStackTrace();
 		} finally {
 			IOUtils.closeQuietly(stmt);

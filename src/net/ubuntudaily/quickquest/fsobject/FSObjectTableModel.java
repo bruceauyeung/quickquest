@@ -5,7 +5,9 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicReference;
 
+import net.ubuntudaily.quickquest.CachedFileIconProvider;
 import net.ubuntudaily.quickquest.HyperSQLManager;
 import net.ubuntudaily.quickquest.utils.FSObjectUtils;
 
@@ -16,24 +18,22 @@ import org.slf4j.LoggerFactory;
 
 import com.trolltech.qt.QtBlockedSlot;
 import com.trolltech.qt.core.QAbstractItemModel;
-import com.trolltech.qt.core.QFileInfo;
 import com.trolltech.qt.core.QModelIndex;
 import com.trolltech.qt.core.Qt;
 import com.trolltech.qt.core.Qt.Orientation;
 import com.trolltech.qt.gui.QAbstractTableModel;
 import com.trolltech.qt.gui.QApplication;
-import com.trolltech.qt.gui.QFileIconProvider;
 
 public class FSObjectTableModel extends QAbstractTableModel {
 
 	private Logger LOGGER = LoggerFactory.getLogger(FSObjectTableModel.class);
 	private String criterion;
 	private Map<String, String> criteria = null;
-	private FSObjectCache cache;
+	private  AtomicReference<FSObjectCache> cacheRef = new AtomicReference<FSObjectCache>();
 	private AtomicInteger totalRowNum = new AtomicInteger(-1);
 
 	public Signal1<Integer> rowCountChanged = new Signal1<Integer>();
-	private final QFileIconProvider fip = new QFileIconProvider();
+	private final CachedFileIconProvider cfip = CachedFileIconProvider.instance();
 
 	public FSObjectTableModel(String criterion) {
 		resetCriterion(criterion);
@@ -60,7 +60,15 @@ public class FSObjectTableModel extends QAbstractTableModel {
 
 			criteria.put("name", this.criterion);
 		}
-		cache = null;
+		
+		QApplication.invokeAndWait(new Runnable(){
+
+			@Override
+			public void run() {
+				cacheRef.set(null);
+				
+			}});
+		
 		final Integer total = Integer.valueOf(String.valueOf(HyperSQLManager
 				.countLike(this.criteria)));
 		LOGGER.debug("resetCriterion recount:{}", total);
@@ -100,7 +108,16 @@ public class FSObjectTableModel extends QAbstractTableModel {
 
 	public void resetAndClearModel() {
 		resetCriterion(this.criterion);
-		resetModel();
+		QApplication.invokeLater(new Runnable(){
+
+			@Override
+			public void run() {
+				resetModel();
+			}
+			
+		});
+		
+		
 	}
 
 	@Override
@@ -110,18 +127,17 @@ public class FSObjectTableModel extends QAbstractTableModel {
 		FSObjectVO vo = null;
 		int row = modelIndex.row();
 
+		FSObjectCache cache = cacheRef.get();
 		if (cache == null || !cache.getRowNumRange().contains(row)) {
 			retrieveData(row);
 
 		}
-		vo = cache.get(row);
+		vo = cacheRef.get().get(row);
 		if (vo != null) {
 
 			if (role == Qt.ItemDataRole.DecorationRole) {
 				if (modelIndex.column() == 0) {
-					QFileInfo fileInfo = new QFileInfo(new File(vo.getPath(),
-							vo.getName()).getAbsolutePath());
-					return fip.icon(fileInfo);
+					return cfip.icon(new File(vo.getPath(), vo.getName()));
 				}
 			} else if (role == Qt.ItemDataRole.DisplayRole) {
 				switch (modelIndex.column()) {
@@ -161,6 +177,7 @@ public class FSObjectTableModel extends QAbstractTableModel {
 	private void retrieveData(int row) {
 		int startRow = -1;
 		int endRow = -1;
+		FSObjectCache cache = cacheRef.get();
 		if (cache != null) {
 			LOGGER.debug("row:{}, min:{}, max:{}", row, cache.getRowNumRange()
 					.getMinimum(), cache.getRowNumRange().getMaximum());
@@ -176,11 +193,11 @@ public class FSObjectTableModel extends QAbstractTableModel {
 			startRow = row;
 			endRow = row + FSObjectCache.MAX_CACHE_SIZE - 1;
 		}
-		
+
 		if (startRow < 0) {
 			startRow = 0;
 		}
-		
+
 		Range<Integer> between = Range.between(startRow, endRow);
 		long start = System.nanoTime();
 		List<FSObject> result = HyperSQLManager.selectLike(this.criteria,
@@ -191,7 +208,8 @@ public class FSObjectTableModel extends QAbstractTableModel {
 		if (result.size() < FSObjectCache.MAX_CACHE_SIZE) {
 			between = Range.between(startRow, startRow + result.size() - 1);
 		}
-		cache = new FSObjectCache(between);
+		cacheRef.set(new FSObjectCache(between));
+		cache = cacheRef.get();
 
 		start = System.nanoTime();
 		cache.copyFrom(FSObjectUtils.transform(result));
@@ -307,14 +325,14 @@ public class FSObjectTableModel extends QAbstractTableModel {
 	@QtBlockedSlot
 	public boolean removeRows(int row, int count, QModelIndex parent) {
 		beginRemoveRows(parent, row, row + count - 1);
-		cache.remove(row, count);
+		cacheRef.get().remove(row, count);
 		endRemoveRows();
 		return true;
 		// return super.removeRows(row, count, parent);
 	}
 
 	public FSObjectVO getRow(int rowNum) {
-		return cache.get(rowNum);
+		return cacheRef.get().get(rowNum);
 	}
 
 	public String getCriterion() {

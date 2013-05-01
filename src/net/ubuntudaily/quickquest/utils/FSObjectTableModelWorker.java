@@ -10,7 +10,7 @@ import com.trolltech.qt.gui.QApplication;
 import com.trolltech.qt.gui.QTableView;
 
 public class FSObjectTableModelWorker implements Runnable {
-	private Logger LOGGER = LoggerFactory.getLogger(FSObjectTableModelWorker.class);
+	private Logger LOG = LoggerFactory.getLogger(FSObjectTableModelWorker.class);
 	private String criterion;
 	private Main mainWindow;
 	
@@ -35,7 +35,7 @@ public class FSObjectTableModelWorker implements Runnable {
 				model.resetModel();
 				
 				//vsb.setRange(1, model.getTotalRowNum().get());
-				view.reset();
+				//view.reset();
 				//QScrollBar vsb = view.verticalScrollBar();
 				//LOGGER.debug("vertical scrollbar range:{},{}", vsb.minimum(), vsb.maximum());
 				//view.update();

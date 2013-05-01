@@ -6,10 +6,12 @@
 	<property name="build.dir" value="build" />
 	<property name="lib.dir" value="lib" />
 	<property name="dist.dir" value="dist" />
-	<path id="master-classpath">
+	<path id="master-linux-classpath">
 		<fileset dir="${lib.dir}">
 			<include name="*.jar" />
 			<exclude name="testng*.jar" />
+			<exclude name="qtjambi-4.7.1.jar" />
+			<exclude name="qtjambi-win32-msvc2008-4.7.1.jar" />
 		</fileset>
 	</path>
 	<path id="manifest-classpath">
@@ -41,7 +43,7 @@
 		<javac srcdir="${src.dir}" destdir="${build.dir}" source="1.6" target="1.6" debug="on">
 
 			<compilerarg line=" -encoding UTF-8" />
-			<classpath refid="master-classpath" />
+			<classpath refid="master-linux-classpath" />
 		</javac>
 
 		<manifestclasspath property="manifest_cp" jarfile="${ant.project.name}.jar">

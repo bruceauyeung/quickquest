@@ -13,7 +13,10 @@ import org.slf4j.LoggerFactory;
 public class FileOperationFlowController {
 
 	private static final int MODIFY_THRESHOLD_PER_SEC = 1;
+	private static final int CREATE_THRESHOLD_PER_SEC = 5;
+	private static final long FLOW_RESET_PERIOD = 1000000000;
 	private static final ConcurrentHashMap<FSObject, ModifyCountInfo> modifyCountMap = new ConcurrentHashMap<FSObject, ModifyCountInfo>();
+	private static final AtomicInteger createCount = new AtomicInteger(0);
 	private static final FileOperationFlowResetTask flowResetTask = new FileOperationFlowResetTask();
 	private static final ModifyCountMapPurgeTask purgeTask = new ModifyCountMapPurgeTask();
 	private static Thread resetThread;
@@ -31,6 +34,15 @@ public class FileOperationFlowController {
 		}else{
 			return true;
 		}
+	}
+	public static boolean createAllowed(){
+		int current = createCount.incrementAndGet();
+		if(CREATE_THRESHOLD_PER_SEC < current){
+			return false;
+		}else{
+			return true;
+		}
+		
 	}
 	private FileOperationFlowController() {
 	}
@@ -94,7 +106,7 @@ public class FileOperationFlowController {
 	private static class FileOperationFlowResetTask implements Runnable{
 		private static final Logger LOG = LoggerFactory.getLogger(FileOperationFlowResetTask.class);
 		private AtomicLong lastResetTime = new AtomicLong(System.nanoTime());
-		private static final long FLOW_RESET_PERIOD = 1000000000;
+		
 		
 		
 		private volatile boolean cancelled = false;
@@ -108,9 +120,11 @@ public class FileOperationFlowController {
 					for(ModifyCountInfo value : values){
 						value.getModifyCount().set(0);
 					}
+					createCount.set(0);
 					lastResetTime.set(current);
+					
 					try {
-						Thread.sleep(100);
+						Thread.sleep(1000);
 					} catch (InterruptedException e) {
 						cancelled = true;
 						LOG.debug(e.getMessage());

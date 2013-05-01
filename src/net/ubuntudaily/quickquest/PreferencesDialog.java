@@ -1,7 +1,6 @@
 package net.ubuntudaily.quickquest;
 
 import java.io.File;
-import java.util.Collections;
 import java.util.List;
 
 import net.ubuntudaily.quickquest.commons.collections.Lists;
@@ -329,7 +328,8 @@ public class PreferencesDialog extends QDialog {
 		List<MonitoredDirectory> dels = Lists.newArrayListWithCapacity(dirTab
 				.getMonitoredDirectories().size());
 
-		Collections.copy(dels, dirTab.getMonitoredDirectories());
+		//Collections.copy(dels, dirTab.getMonitoredDirectories());
+		dels.addAll(dirTab.getMonitoredDirectories());
 		
 		for (int i = 0; i < moniDirListWidget.count(); i++) {
 			QListWidgetItem item = moniDirListWidget.item(i);

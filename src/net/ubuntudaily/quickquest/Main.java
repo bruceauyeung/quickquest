@@ -192,6 +192,7 @@ public class Main extends QMainWindow {
 
 		tableModel = new FSObjectTableModel(null);
 		tableModel.rowCountChanged.connect(this, "slotRowCountChanged(int)");
+		//tableModel.modelReset.connect(this, "slotModelReset()");
 		QSortFilterProxyModel proxyModel = new QSortFilterProxyModel(this);
 		proxyModel.setSourceModel(tableModel);
 		matchedFilesTableView.setModel(proxyModel);
@@ -344,6 +345,9 @@ public class Main extends QMainWindow {
 
 		}
 	}
+	public void slotModelReset(){
+		this.matchedFilesTableView.reset();
+	}
 
 	public void slotDoubleClicked(final QModelIndex qModelIndex) {
 		FSObjectVO fsovo = tableModel.getRow(qModelIndex.row());
@@ -385,7 +389,7 @@ public class Main extends QMainWindow {
 
 	public void slotQuestTextChanged() {
 		String critira = questLineEdit.text();
-		Map<String, String> conditions = Maps.newHashMap();
+		Map<String, String> conditions = Maps.newHashMapWithExpectedSize(1);
 		conditions.put("name", critira);
 		executor.submit(new FSObjectTableModelWorker(this, critira));
 
@@ -430,6 +434,7 @@ public class Main extends QMainWindow {
 	@QtBlockedSlot
 	protected void closeEvent(QCloseEvent qCloseEvent) {
 		FileOperationFlowController.stop();
+		CachedFileIconProvider.instance().stopPurge();
 		for(Future<?> f :fileFinderTaskList){		
 			f.cancel(true);
 		}
