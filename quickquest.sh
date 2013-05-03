@@ -7,7 +7,7 @@ else
 fi
 QUICKQUEST_PROG_DIR=$(dirname $0);
 export LD_LIBRARY_PATH=$QUICKQUEST_PROG_DIR/lib:$USR_LIB_PATH/qtjambi/:$LD_LIBRARY_PATH;
-JAVA_CLASSPATH="$USR_LIB_PATH/jni/qtjambi.jar:$QUICKQUEST_PROG_DIR/quickquest.jar";
+JAVA_CLASSPATH="$USR_LIB_PATH/jni/qtjambi.jar:$QUICKQUEST_PROG_DIR/quickquest-linux.jar";
 for f in `ls $QUICKQUEST_PROG_DIR/lib/*.jar`; do
   JAVA_CLASSPATH=$JAVA_CLASSPATH:$f;
 done

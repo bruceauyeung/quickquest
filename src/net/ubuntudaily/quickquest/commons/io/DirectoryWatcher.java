@@ -42,8 +42,7 @@ public class DirectoryWatcher implements Callable<Void>{
 					watchedDirs.remove(dir);
 				}
 			} catch (JNotifyException e) {
-				// TODO Auto-generated catch block
-				e.printStackTrace();
+				LOG.error("failed to removWatch dir:" + dir.getAbsolutePath(), e);
 			}
 			
 
@@ -67,7 +66,7 @@ public class DirectoryWatcher implements Callable<Void>{
 				watchedDirs.put(dir, Integer.valueOf(watchID));
 			} catch (Throwable t) {
 				
-				LOG.error(t.getMessage());
+				LOG.error("failed to watch dir:" + dir.getAbsolutePath(), t);
 				watchedDirs.remove(dir);
 			}
 

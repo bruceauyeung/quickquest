@@ -63,13 +63,45 @@ public class FileUtils extends org.apache.commons.io.FileUtils {
 		return false;
 	}
 
+	public static boolean openWithDefAppWin(File file){
+		if(!file.exists()){
+			return false;
+		}
+		boolean succ = true;
+		CommandLine cmdLine = new CommandLine("cmd");
+		cmdLine.addArgument("/c");
+		cmdLine.addArgument("start");
+		cmdLine.addArgument("${file}");
+		Map<String, File> map = Maps.newHashMap();
+		map.put("file", file);
+		cmdLine.setSubstitutionMap(map);
+
+		DefaultExecuteResultHandler resultHandler = new DefaultExecuteResultHandler();
+
+		Executor executor = new DefaultExecutor();
+		executor.setStreamHandler(new PumpStreamHandler());
+		try {
+			executor.execute(cmdLine, resultHandler);
+		} catch (ExecuteException e1) {
+			LOG.error(e1.getMessage());
+			succ = false;
+		} catch (IOException e1) {
+			LOG.error(e1.getMessage());
+			succ = false;
+		}
+		
+
+		return succ;
+	}
 	/**
 	 * under my openSUSE12.3 system, this method can not handle directories correctly. 
 	 * for example, qmmp program will be launched when open a directory using this method.
+	 * under my windows 7 system, this method crashes when opening a directory, what a shame !
+	 * @deprecated
 	 * @param file
 	 * @return
 	 */
-	public static boolean OpenWithDefAppPureJava(File file) {
+	public static boolean openWithDefAppPureJava(File file) {
 
 		if(!file.exists()){
 			return false;
@@ -135,13 +167,18 @@ public class FileUtils extends org.apache.commons.io.FileUtils {
 				// TODO: tell user this file can not be opened.
 				succ = false;
 			}
-		} else if (OSValidator.isWindows() || OSValidator.isMac()) {
+		} else if (OSValidator.isMac()) {
 
-			if (!FileUtils.OpenWithDefAppPureJava(file)) {
+			if (!FileUtils.openWithDefAppPureJava(file)) {
 				succ = false;
 			}
 
 		} 
+		else if(OSValidator.isWindows()){
+			if (!FileUtils.openWithDefAppWin(file)) {
+				succ = false;
+			}
+		}
 		return succ;
 	}
 
