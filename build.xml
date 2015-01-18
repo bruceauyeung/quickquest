@@ -119,7 +119,7 @@
 				<!-- Information about the program itself -->
 				<attribute name="Implementation-Vendor" value="bruce.auyeung@yahoo.com" />
 				<attribute name="Implementation-Title" value="QuickQuest" />
-				<attribute name="Implementation-Version" value="0.1" />
+				<attribute name="Implementation-Version" value="${rel.ver.num}" />
 				<attribute name="Class-Path" value="${mcp-linux64}" />
 				<attribute name="Main-Class" value="us.suselinks.quickquest.Main" />
 				<!-- details 
@@ -155,7 +155,7 @@
 				<!-- Information about the program itself -->
 				<attribute name="Implementation-Vendor" value="bruce.oy@gmail.com" />
 				<attribute name="Implementation-Title" value="QuickQuest" />
-				<attribute name="Implementation-Version" value="0.1" />
+				<attribute name="Implementation-Version" value="${rel.ver.num}" />
 				<attribute name="Class-Path" value="${mcp-win32}" />
 				<attribute name="Main-Class" value="us.suselinks.quickquest.Main" />
 				<!-- details 
