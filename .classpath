@@ -17,5 +17,6 @@
 	<classpathentry kind="con" path="org.eclipse.jdt.launching.JRE_CONTAINER"/>
 	<classpathentry kind="lib" path="qtjambi-linux64/qtjambi-4.8.6.jar"/>
 	<classpathentry kind="lib" path="lib/slf4j-api-1.7.10.jar"/>
+	<classpathentry kind="lib" path="lib/slf4j-jdk14-1.7.10.jar"/>
 	<classpathentry kind="output" path="bin"/>
 </classpath>

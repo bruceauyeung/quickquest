@@ -19,13 +19,11 @@ import us.suselinks.quickquest.fsobject.ViewModelNotice;
 
 public class FSObjectIndexer implements Callable<Void> {
 
-	private static final Logger LOGGER = LoggerFactory
-			.getLogger(FSObjectIndexer.class);
+	private static final Logger LOGGER = LoggerFactory.getLogger(FSObjectIndexer.class);
 	private final BlockingQueue<FileOperation> readInQueue;
 	private final BlockingQueue<ViewModelNotice> noticeQueue;
 
-	public FSObjectIndexer(BlockingQueue<FileOperation> readInQueue,
-			BlockingQueue<ViewModelNotice> noticeQueue) {
+	public FSObjectIndexer(BlockingQueue<FileOperation> readInQueue, BlockingQueue<ViewModelNotice> noticeQueue) {
 		this.readInQueue = readInQueue;
 		this.noticeQueue = noticeQueue;
 	}
@@ -48,7 +46,7 @@ public class FSObjectIndexer implements Callable<Void> {
 			renameFile(before, after);
 		} else if (FileOperationType.MODIFY.equals(fo.getType())) {
 			File after = fo.getAfterOperated();
-			updateFile(after);
+			insertOrUpdateFile(after);
 		}
 
 	}
@@ -59,79 +57,59 @@ public class FSObjectIndexer implements Callable<Void> {
 		LOGGER.debug("finish emitting a notice.");
 	}
 
-	private void updateFile(File after) throws InterruptedException {
-		HyperSQLManager.ensureTableExistence(FileUtils
-				.calculateFileDepth(after));
+	private void insertOrUpdateFile(File after) throws InterruptedException {
+		HyperSQLManager.ensureTableExistence(FileUtils.calculateFileDepth(after));
 		FSObject fsObjInfo = HyperSQLManager.findEquivalent(after);
 		if (fsObjInfo != null) {
 
 			// only size and last modified timestamp are needed to be updated
 			fsObjInfo.setSize(after.length());
 			fsObjInfo.setLmts(new Timestamp(after.lastModified()));
-			HyperSQLManager.update(fsObjInfo);
-			LOGGER.debug("FSObject in database has been updated: {}",
-					fsObjInfo.toString());
+			try {
+				HyperSQLManager.update(fsObjInfo);
+			} catch (Exception e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			}
+			LOGGER.debug("FSObject in database has been updated: {}", fsObjInfo.toString());
 
 			notifyViewModel(FileOperationType.MODIFY, fsObjInfo);
 
 		} else {
-			LOGGER.warn(
-					"file existing in database is expected, but not found, maybe indexes is not consistent with file system.\r\nfile path:{} ",
-					after.getAbsolutePath());
+			LOGGER.warn("this file's FSObject does not exist yet, try to create one for :{}", after.getAbsolutePath());
+			this.insertFile(after);
 		}
 
 	}
 
 	private void renameFile(File before, File after) throws InterruptedException {
-		HyperSQLManager.ensureTableExistence(FileUtils
-				.calculateFileDepth(before));
-		FSObject fsObjInfo = HyperSQLManager.findEquivalent(before);
-		if (fsObjInfo != null) {
-
-			// only name and last modified timestamp are needed to be updated
-			fsObjInfo.setLmts(new Timestamp(after.lastModified()));
-			fsObjInfo.setName(after.getName());
-			HyperSQLManager.update(fsObjInfo);
-			LOGGER.debug("File {} in database has been renamed to {}",
-					before.getName(), after.getName());
-
-			notifyViewModel(FileOperationType.RENAME, fsObjInfo);
-
-		} else {
-			LOGGER.warn(
-					"file existing in database is expected, but not found, maybe indexes is not consistent with file system.\r\nfile path:{} ",
-					after.getAbsolutePath());
-		}
-
+		this.deleteFile(before);
+		this.insertOrUpdateFile(after);
 	}
 
 	private void deleteFile(File file) throws InterruptedException {
-		HyperSQLManager
-				.ensureTableExistence(FileUtils.calculateFileDepth(file));
+		HyperSQLManager.ensureTableExistence(FileUtils.calculateFileDepth(file));
 		FSObject fsObjInfo = HyperSQLManager.findEquivalent(file);
 		if (fsObjInfo != null) {
 			HyperSQLManager.delete(fsObjInfo);
-			LOGGER.debug("FSObject removed from database : {}",
-					fsObjInfo.toString());
+			LOGGER.debug("FSObject removed from database : {}", fsObjInfo.toString());
 
 			notifyViewModel(FileOperationType.DELETE, fsObjInfo);
 
 		} else {
-			LOGGER.warn(
-					"file existing in database is expected, but not found, maybe indexes is not consistent with file system.\r\nfile path:{} ",
+			LOGGER.warn("file existing in database is expected, but not found, maybe indexes is not consistent with file system.\r\nfile path:{} ",
 					file.getAbsolutePath());
+
 		}
 	}
 
 	private void insertFile(File file) throws InterruptedException {
 
-		HyperSQLManager
-				.ensureTableExistence(FileUtils.calculateFileDepth(file));
+		HyperSQLManager.ensureTableExistence(FileUtils.calculateFileDepth(file));
 
 		FSObject fsObjInfo = HyperSQLManager.findEquivalent(file);
 		if (fsObjInfo == null) {
-			List<String> splittedFilenames = FilenameUtils.split(file
-					.getAbsolutePath());
+			List<String> splittedFilenames = FilenameUtils.split(file.getAbsolutePath());
 
 			File self = null;
 			FSObject selfObj = null;
@@ -174,7 +152,7 @@ public class FSObjectIndexer implements Callable<Void> {
 	@Override
 	public Void call() throws Exception {
 		while (!Thread.currentThread().isInterrupted()) {
-			
+
 			try {
 				FileOperation poll = null;
 				LOGGER.debug("start taking a file operation.");
@@ -185,7 +163,6 @@ public class FSObjectIndexer implements Callable<Void> {
 				// TODO Auto-generated catch block
 				Thread.currentThread().interrupt();
 			}
-			
 
 		}
 		return null;

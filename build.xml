@@ -7,7 +7,7 @@
 	<property name="build.linux.dir" value="build-linux" />
 	<property name="lib.dir" value="lib" />
 	<property name="dist.dir" value="dist" />
-	<property name="rel.ver.num" value="0.1" />
+	<property name="rel.ver.num" value="0.2" />
 	<path id="master-linux-classpath">
 		<fileset dir="${lib.dir}">
 			<include name="*.jar" />
@@ -167,7 +167,7 @@
 	</target>
 	<target name="pack-linux64" depends="jar-linux64" description="pack a zip file which contains anything the end users need">
 		<mkdir dir="${dist.dir}" />
-		<chmod file="./quickquest.sh" perm="u+x"/>
+		
 		
 		<pathconvert targetos="unix" property="qtjambi.jar.path.linux64" refid="linux64-classpath">
 			<flattenmapper/>
@@ -176,8 +176,8 @@
 		<copy file="${basedir}/quickquest.sh" todir="${java.io.tmpdir}" overwrite="true" />
 		
 		<replace file="${java.io.tmpdir}/quickquest.sh" token="@qtjambi.jar.file.name@" value="${qtjambi.jar.path.linux64}"/>
-		
-		<zip destfile="${dist.dir}/quickquest-linux64-${rel.ver.num}.zip">
+		<chmod file="${java.io.tmpdir}/quickquest.sh" perm="u+rwx"/>
+		<tar destfile="${dist.dir}/quickquest-linux64-${rel.ver.num}.tar.bz2" compression="bzip2">
 			<fileset dir="." includes="${ant.project.name}-linux.jar, README.md, quickquest-icon-128x128.png">
 				<include name="lib/**/*" />
 				<include name="jnotify-linux64/**/*" />
@@ -185,13 +185,13 @@
 				<exclude name="lib/**/testng*.jar" />
 				<exclude name="lib/**/qtjambi*.jar" />
 			</fileset>
-			<zipfileset dir="${java.io.tmpdir}" includes="quickquest.sh" />
-		</zip>
+			<tarfileset dir="${java.io.tmpdir}" includes="quickquest.sh" filemode="755"/>
+		</tar>
 		
 	</target>
 	<target name="pack-linux32" depends="jar-linux32" description="pack a zip file which contains anything the end users need">
 		<mkdir dir="${dist.dir}" />
-		<chmod file="./quickquest.sh" perm="u+x"/>
+		<chmod file="./quickquest.sh" perm="u+rwx"/>
 		<pathconvert targetos="unix" property="qtjambi.jar.path.linux32" refid="linux32-classpath">
 			<flattenmapper/>
 		</pathconvert>
@@ -199,8 +199,8 @@
 		<copy file="${basedir}/quickquest.sh" todir="${java.io.tmpdir}" overwrite="true" />
 		
 		<replace file="${java.io.tmpdir}/quickquest.sh" token="@qtjambi.jar.file.name@" value="${qtjambi.jar.path.linux32}"/>
-		
-		<zip destfile="${dist.dir}/quickquest-linux32-${rel.ver.num}.zip">
+		<chmod file="${java.io.tmpdir}/quickquest.sh" perm="u+rwx"/>
+		<tar destfile="${dist.dir}/quickquest-linux32-${rel.ver.num}.tar.bz2" compression="bzip2">
 			<fileset dir="." includes="${ant.project.name}-linux.jar, README.md, quickquest-icon-128x128.png">
 				<include name="lib/**/*" />
 				<include name="jnotify-linux32/**/*" />
@@ -208,8 +208,8 @@
 				<exclude name="lib/**/testng*.jar" />
 				<exclude name="lib/**/qtjambi*.jar" />
 			</fileset>	
-			<zipfileset dir="${java.io.tmpdir}" includes="quickquest.sh" />
-		</zip>
+			<tarfileset dir="${java.io.tmpdir}" includes="quickquest.sh" filemode="755"/>
+		</tar>
 		
 	</target>	
 	<target name="pack-win32" depends="jar-win32" description="pack a zip file which contains anything the end users need">
