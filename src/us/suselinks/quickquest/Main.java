@@ -245,7 +245,7 @@ public class Main extends QMainWindow {
 		// fsObjectTableView.resizeColumnsToContents();
 
 		int corePoolSize = 8;
-		int maximumPoolSize = 8;
+		int maximumPoolSize = 16;
 		long keepAliveTime = 60;
 		BlockingQueue<Runnable> workQueue = new LinkedBlockingQueue<Runnable>(10);
 		executor = new ThreadPoolExecutor(corePoolSize, maximumPoolSize, keepAliveTime, TimeUnit.SECONDS, workQueue);
@@ -292,7 +292,7 @@ public class Main extends QMainWindow {
 	}
 
 	public void startFindingAndWatching() {
-		ViewModelNoticeHandler noticeHandler = new ViewModelNoticeHandler(matchedFilesTableView, tableModel, noticeQueue);
+		ViewModelNoticeHandler noticeHandler = new ViewModelNoticeHandler(matchedFilesTableView, tableModel, noticeQueue, executor);
 		noticeHandlerTask = executor.submit(noticeHandler);
 
 		fsoIndexerQueue = new LinkedBlockingQueue<FileOperation>(1000);
