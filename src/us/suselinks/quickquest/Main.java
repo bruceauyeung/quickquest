@@ -107,6 +107,7 @@ public class Main extends QMainWindow {
 	private QAction prefsAct;
 	private BlockingQueue<FileOperation> fsoIndexerQueue;
 	private BlockingQueue<ViewModelNotice> noticeQueue = new LinkedBlockingQueue<ViewModelNotice>(500);
+	private FileOperationListener fileOperationListener;
 	static {
 
 		QuickQuest.loadPreferences();
@@ -296,7 +297,7 @@ public class Main extends QMainWindow {
 		noticeHandlerTask = executor.submit(noticeHandler);
 
 		fsoIndexerQueue = new LinkedBlockingQueue<FileOperation>(1000);
-		FileOperationListener fileOperationListener = new FileOperationListener(fsoIndexerQueue);
+		fileOperationListener = new FileOperationListener(fsoIndexerQueue);
 		List<File> toMonitoredDirsList = Lists.newArrayList();
 
 		List<MonitoredDirectory> moniDirs = QuickQuest.getPreferences().getDirectoryTab().getMonitoredDirectories();
@@ -414,24 +415,39 @@ public class Main extends QMainWindow {
 			if (clicked == ok) {
 				for (int i = 0; i < size; i++) {
 					FSObjectVO fsovo = tableModel.getRow(rows.get(i));
-					FileUtils.deleteQuietly(new File(fsovo.getPath(), fsovo.getName()));
+					File file = new File(fsovo.getPath(), fsovo.getName());
+					if (file.exists()) {
+						FileUtils.deleteQuietly(file);
+					} else {
+						fileOperationListener.mockFileDeleted(file);
+					}
 				}
 
 			}
 		} else if (size == 1) {
 			FSObjectVO fsovo = tableModel.getRow(rows.get(0));
 			File first = new File(fsovo.getPath(), fsovo.getName());
-			if (first.isDirectory()) {
+			if (first.exists()) {
+				if (first.isDirectory()) {
 
-				clicked = QMessageBox.question(this, tr("Deleting directory"), tr("Are you sure to delete this directory?"), buttons, ok);
+					clicked = QMessageBox.question(this, tr("Deleting directory"), tr("Are you sure to delete this directory?"), buttons, ok);
 
-			} else if (first.isFile()) {
-				clicked = QMessageBox.question(this, tr("Deleting file"), tr("Are you sure to delete this file?"), buttons, ok);
+				} else if (first.isFile()) {
+					clicked = QMessageBox.question(this, tr("Deleting file"), tr("Are you sure to delete this file?"), buttons, ok);
+				}
+
+				if (clicked == ok) {
+					FileUtils.deleteQuietly(first);
+				}
+			} else {
+				clicked = QMessageBox.question(this, tr("Deleting invalid index"),
+						tr("the file ( directory ) does not exist in your file system any more, delete the corresponding index from QuickQuest database ?"),
+						buttons, ok);
+				if (clicked == ok) {
+					fileOperationListener.mockFileDeleted(first);
+				}
 			}
 
-			if (clicked == ok) {
-				FileUtils.deleteQuietly(first);
-			}
 		}
 
 	}

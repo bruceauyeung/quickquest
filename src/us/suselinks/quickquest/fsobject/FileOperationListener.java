@@ -9,9 +9,11 @@ import org.apache.commons.lang3.Validate;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import us.suselinks.quickquest.FSObjectIndexer;
+
 public class FileOperationListener implements JNotifyListener {
 
-	private static final Logger LOG=LoggerFactory.getLogger(FileOperationListener.class);
+	private static final Logger LOG = LoggerFactory.getLogger(FileOperationListener.class);
 	private BlockingQueue<FileOperation> queue;
 
 	public FileOperationListener(BlockingQueue<FileOperation> queue) {
@@ -23,8 +25,7 @@ public class FileOperationListener implements JNotifyListener {
 	@Override
 	public void fileCreated(int wd, String rootPath, String name) {
 		File created = getFile(rootPath, name);
-		FileOperation fo = new FileOperation(FileOperationType.CREATE, null,
-				created);
+		FileOperation fo = new FileOperation(FileOperationType.CREATE, null, created);
 		writeIntoQueue(fo);
 
 	}
@@ -55,27 +56,36 @@ public class FileOperationListener implements JNotifyListener {
 	@Override
 	public void fileDeleted(int wd, String rootPath, String name) {
 		File deleted = getFile(rootPath, name);
-		FileOperation fo = new FileOperation(FileOperationType.DELETE, deleted,
-				null);
+		FileOperation fo = new FileOperation(FileOperationType.DELETE, deleted, null);
+		writeIntoQueue(fo);
+	}
+
+	/**
+	 * when an index entry exists in QuickQuest database meanwhile the
+	 * corresponding real file system entry doesn't, send a
+	 * {@link MockFileOperation} object to {@link FSObjectIndexer},then database
+	 * index entry will be deleted and the view will get noticed.
+	 * 
+	 * @param deleted
+	 */
+	public void mockFileDeleted(File deleted) {
+		FileOperation fo = new MockFileOperation(FileOperationType.DELETE, deleted, null);
 		writeIntoQueue(fo);
 	}
 
 	@Override
 	public void fileModified(int wd, String rootPath, String name) {
 		File modified = getFile(rootPath, name);
-		FileOperation fo = new FileOperation(FileOperationType.MODIFY, null,
-				modified);
+		FileOperation fo = new FileOperation(FileOperationType.MODIFY, null, modified);
 		writeIntoQueue(fo);
 	}
 
 	@Override
-	public void fileRenamed(int wd, String rootPath, String oldName,
-			String newName) {
+	public void fileRenamed(int wd, String rootPath, String oldName, String newName) {
 		File oldFile = getFile(rootPath, oldName);
 		File newFile = getFile(rootPath, newName);
-		FileOperation fo = new FileOperation(FileOperationType.RENAME, oldFile,
-				newFile);
-		
+		FileOperation fo = new FileOperation(FileOperationType.RENAME, oldFile, newFile);
+
 		writeIntoQueue(fo);
 	}
 
